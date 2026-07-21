@@ -10,6 +10,7 @@ import {
   DEFAULT_SETTINGS,
   storageService,
 } from '../services/storageService';
+import { createSavedRoute } from '../types/savedRoute';
 import {
   MAX_SEARCH_RADIUS_METERS,
   MIN_SEARCH_RADIUS_METERS,
@@ -34,6 +35,7 @@ export function TravelProvider({ children }) {
   const [cityCoordinates, setCityCoordinates] = useState(null);
   const [attractions, setAttractions] = useState([]);
   const [selectedAttractions, setSelectedAttractions] = useState([]);
+  const [savedRoutes, setSavedRoutes] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -42,16 +44,19 @@ export function TravelProvider({ children }) {
 
     async function hydrate() {
       try {
-        const [savedAttractions, lastCity, savedSettings] = await Promise.all([
-          storageService.loadSelectedAttractions(),
-          storageService.loadLastCity(),
-          storageService.loadSettings(),
-        ]);
+        const [savedAttractions, lastCity, savedSettings, routes] =
+          await Promise.all([
+            storageService.loadSelectedAttractions(),
+            storageService.loadLastCity(),
+            storageService.loadSettings(),
+            storageService.loadSavedRoutes(),
+          ]);
 
         if (!mounted) return;
 
         setSelectedAttractions(savedAttractions);
         setSettings(savedSettings);
+        setSavedRoutes(routes);
         if (lastCity) {
           setSearchedCity(lastCity.name);
           setCityCoordinates({
@@ -85,6 +90,13 @@ export function TravelProvider({ children }) {
       console.warn('Failed to persist settings:', error);
     });
   }, [settings, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    storageService.saveSavedRoutes(savedRoutes).catch((error) => {
+      console.warn('Failed to persist saved routes:', error);
+    });
+  }, [savedRoutes, isHydrated]);
 
   const setSearchResult = useCallback((city, places) => {
     setSearchedCity(city.name);
@@ -170,12 +182,66 @@ export function TravelProvider({ children }) {
     [selectedAttractions]
   );
 
+  const saveCurrentRoute = useCallback(
+    (name) => {
+      if (!selectedAttractions.length) {
+        throw new Error('Add at least one place before saving a route.');
+      }
+
+      const route = createSavedRoute({
+        name,
+        cityName: searchedCity,
+        cityCoordinates,
+        startAddress: settings.startAddress,
+        endAddress: settings.endAddress,
+        travelMode: settings.travelMode,
+        attractions: selectedAttractions,
+      });
+
+      setSavedRoutes((current) => [route, ...current]);
+      return route;
+    },
+    [selectedAttractions, searchedCity, cityCoordinates, settings]
+  );
+
+  const deleteSavedRoute = useCallback((routeId) => {
+    setSavedRoutes((current) => current.filter((route) => route.id !== routeId));
+  }, []);
+
+  const loadSavedRoute = useCallback((route) => {
+    if (!route?.attractions?.length) {
+      throw new Error('This saved route has no places.');
+    }
+
+    setSelectedAttractions(route.attractions);
+    setSearchedCity(route.cityName || null);
+    setCityCoordinates(route.cityCoordinates || null);
+    setSettings((current) => ({
+      ...current,
+      startAddress: route.startAddress || '',
+      endAddress: route.endAddress || '',
+      travelMode: normalizeTravelMode(route.travelMode),
+    }));
+
+    if (route.cityName && route.cityCoordinates) {
+      storageService
+        .saveLastCity({
+          id: route.id,
+          name: route.cityName,
+          latitude: route.cityCoordinates.latitude,
+          longitude: route.cityCoordinates.longitude,
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       searchedCity,
       cityCoordinates,
       attractions,
       selectedAttractions,
+      savedRoutes,
       settings,
       isHydrated,
       setSearchResult,
@@ -187,12 +253,16 @@ export function TravelProvider({ children }) {
       clearRoute,
       clearSearch,
       isAttractionSelected,
+      saveCurrentRoute,
+      deleteSavedRoute,
+      loadSavedRoute,
     }),
     [
       searchedCity,
       cityCoordinates,
       attractions,
       selectedAttractions,
+      savedRoutes,
       settings,
       isHydrated,
       setSearchResult,
@@ -203,6 +273,9 @@ export function TravelProvider({ children }) {
       clearRoute,
       clearSearch,
       isAttractionSelected,
+      saveCurrentRoute,
+      deleteSavedRoute,
+      loadSavedRoute,
     ]
   );
 

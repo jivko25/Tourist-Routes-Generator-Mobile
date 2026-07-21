@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   SELECTED_ATTRACTIONS: '@travel/selected_attractions',
   LAST_CITY: '@travel/last_city',
   SETTINGS: '@travel/settings',
+  SAVED_ROUTES: '@travel/saved_routes',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -84,5 +85,23 @@ export const storageService = {
       STORAGE_KEYS.SELECTED_ATTRACTIONS,
       STORAGE_KEYS.LAST_CITY,
     ]);
+  },
+
+  async loadSavedRoutes() {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_ROUTES);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveSavedRoutes(routes) {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.SAVED_ROUTES,
+      JSON.stringify(routes)
+    );
   },
 };

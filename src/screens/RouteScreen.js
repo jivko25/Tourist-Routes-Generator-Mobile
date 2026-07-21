@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Button, Dialog, Portal, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaceMap } from '../components/PlaceMap';
 import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
@@ -30,9 +30,13 @@ export function RouteScreen({ navigation }) {
     cityCoordinates,
     attractions,
     searchedCity,
+    saveCurrentRoute,
   } = useTravel();
   const [opening, setOpening] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveDialogVisible, setSaveDialogVisible] = useState(false);
+  const [routeName, setRouteName] = useState('');
   const [startPoint, setStartPoint] = useState(null);
   const [endPoint, setEndPoint] = useState(null);
   const [routeStats, setRouteStats] = useState(null);
@@ -173,6 +177,36 @@ export function RouteScreen({ navigation }) {
     ]);
   };
 
+  const openSaveDialog = () => {
+    const cityLabel = searchedCity?.split(',')?.[0] || 'Trip';
+    setRouteName(
+      `${cityLabel} · ${selectedAttractions.length} stop${
+        selectedAttractions.length === 1 ? '' : 's'
+      }`
+    );
+    setSaveDialogVisible(true);
+  };
+
+  const handleSaveRoute = () => {
+    setSaving(true);
+    try {
+      const saved = saveCurrentRoute(routeName.trim());
+      setSaveDialogVisible(false);
+      Alert.alert('Route saved', `"${saved.name}" is now in Saved.`, [
+        { text: 'Stay here', style: 'cancel' },
+        {
+          text: 'View saved',
+          onPress: () =>
+            navigation.navigate('MainTabs', { screen: 'SavedTab' }),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Save failed', error.message || 'Could not save this route.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const distanceOrigin = startPoint || cityCoordinates || null;
   const distanceOriginLabel = startPoint ? 'start' : 'city center';
   const canGenerate = selectedAttractions.length > 0;
@@ -184,11 +218,11 @@ export function RouteScreen({ navigation }) {
       navigation.navigate('Attractions');
       return;
     }
-    navigation.navigate('Home');
+    navigation.navigate('MainTabs', { screen: 'HomeTab' });
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="headlineSmall" style={styles.title}>
           Your Route
@@ -274,7 +308,9 @@ export function RouteScreen({ navigation }) {
               <Button
                 mode="contained"
                 buttonColor={colors.primary}
-                onPress={() => navigation.navigate('Home')}
+                onPress={() =>
+                  navigation.navigate('MainTabs', { screen: 'HomeTab' })
+                }
               >
                 Search a city
               </Button>
@@ -296,6 +332,18 @@ export function RouteScreen({ navigation }) {
 
       {canGenerate ? (
         <View style={styles.actions}>
+          <Button
+            mode="contained"
+            onPress={openSaveDialog}
+            buttonColor={colors.success}
+            textColor="#FFFFFF"
+            style={styles.primaryAction}
+            contentStyle={styles.actionContent}
+            icon="bookmark-plus-outline"
+            labelStyle={styles.actionLabel}
+          >
+            Save route
+          </Button>
           <Button
             mode="contained"
             loading={optimizing}
@@ -335,6 +383,41 @@ export function RouteScreen({ navigation }) {
           </Button>
         </View>
       ) : null}
+
+      <Portal>
+        <Dialog
+          visible={saveDialogVisible}
+          onDismiss={() => setSaveDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Save route</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogHint}>
+              Give this itinerary a name so you can reopen it later.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Route name"
+              value={routeName}
+              onChangeText={setRouteName}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              style={styles.dialogInput}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSaveDialogVisible(false)}>Cancel</Button>
+            <Button
+              loading={saving}
+              disabled={!routeName.trim() || saving}
+              onPress={handleSaveRoute}
+              textColor={colors.success}
+            >
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }
@@ -443,5 +526,17 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontWeight: '700',
+  },
+  dialog: {
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+  },
+  dialogHint: {
+    color: colors.textMuted,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  dialogInput: {
+    backgroundColor: colors.surface,
   },
 });

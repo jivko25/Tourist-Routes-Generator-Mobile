@@ -110,7 +110,7 @@ export function AttractionsScreen({ navigation }) {
         <Text style={styles.emptyText}>
           Try other categories, a larger radius, or another city.
         </Text>
-        <Button mode="outlined" onPress={() => navigation.navigate('Home')}>
+        <Button mode="outlined" onPress={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })}>
           Search again
         </Button>
       </View>
@@ -191,7 +191,9 @@ export function AttractionsScreen({ navigation }) {
           buttonColor={colors.accent}
           textColor="#FFFFFF"
           disabled={selectedAttractions.length === 0}
-          onPress={() => navigation.navigate('Route')}
+          onPress={() =>
+            navigation.navigate('MainTabs', { screen: 'RouteTab' })
+          }
           contentStyle={styles.footerButton}
           style={styles.footerAction}
           labelStyle={styles.footerLabel}
