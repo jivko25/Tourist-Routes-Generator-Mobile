@@ -6,15 +6,34 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { storageService } from '../services/storageService';
+import {
+  DEFAULT_SETTINGS,
+  storageService,
+} from '../services/storageService';
+import {
+  MAX_SEARCH_RADIUS_METERS,
+  MIN_SEARCH_RADIUS_METERS,
+} from '../utils/config';
 
 const TravelContext = createContext(null);
+
+function clampRadius(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_SETTINGS.searchRadiusMeters;
+  }
+  return Math.min(
+    MAX_SEARCH_RADIUS_METERS,
+    Math.max(MIN_SEARCH_RADIUS_METERS, Math.round(numeric))
+  );
+}
 
 export function TravelProvider({ children }) {
   const [searchedCity, setSearchedCity] = useState(null);
   const [cityCoordinates, setCityCoordinates] = useState(null);
   const [attractions, setAttractions] = useState([]);
   const [selectedAttractions, setSelectedAttractions] = useState([]);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -22,14 +41,16 @@ export function TravelProvider({ children }) {
 
     async function hydrate() {
       try {
-        const [savedAttractions, lastCity] = await Promise.all([
+        const [savedAttractions, lastCity, savedSettings] = await Promise.all([
           storageService.loadSelectedAttractions(),
           storageService.loadLastCity(),
+          storageService.loadSettings(),
         ]);
 
         if (!mounted) return;
 
         setSelectedAttractions(savedAttractions);
+        setSettings(savedSettings);
         if (lastCity) {
           setSearchedCity(lastCity.name);
           setCityCoordinates({
@@ -57,6 +78,13 @@ export function TravelProvider({ children }) {
     });
   }, [selectedAttractions, isHydrated]);
 
+  useEffect(() => {
+    if (!isHydrated) return;
+    storageService.saveSettings(settings).catch((error) => {
+      console.warn('Failed to persist settings:', error);
+    });
+  }, [settings, isHydrated]);
+
   const setSearchResult = useCallback((city, places) => {
     setSearchedCity(city.name);
     setCityCoordinates({
@@ -66,6 +94,39 @@ export function TravelProvider({ children }) {
     setAttractions(places);
     storageService.saveLastCity(city).catch((error) => {
       console.warn('Failed to persist last city:', error);
+    });
+  }, []);
+
+  const updateSettings = useCallback((partial) => {
+    setSettings((current) => {
+      const next = {
+        ...current,
+        ...partial,
+      };
+
+      if (partial.searchRadiusMeters != null) {
+        next.searchRadiusMeters = clampRadius(partial.searchRadiusMeters);
+      }
+
+      if (partial.startAddress != null) {
+        next.startAddress = String(partial.startAddress);
+      }
+
+      if (partial.endAddress != null) {
+        next.endAddress = String(partial.endAddress);
+      }
+
+      if (partial.selectedCategories != null) {
+        const categories = Array.isArray(partial.selectedCategories)
+          ? partial.selectedCategories.filter((id) => typeof id === 'string')
+          : [];
+        next.selectedCategories =
+          categories.length > 0
+            ? categories
+            : [...DEFAULT_SETTINGS.selectedCategories];
+      }
+
+      return next;
     });
   }, []);
 
@@ -106,9 +167,11 @@ export function TravelProvider({ children }) {
       cityCoordinates,
       attractions,
       selectedAttractions,
+      settings,
       isHydrated,
       setSearchResult,
       setAttractions,
+      updateSettings,
       toggleAttraction,
       removeAttraction,
       clearRoute,
@@ -120,8 +183,10 @@ export function TravelProvider({ children }) {
       cityCoordinates,
       attractions,
       selectedAttractions,
+      settings,
       isHydrated,
       setSearchResult,
+      updateSettings,
       toggleAttraction,
       removeAttraction,
       clearRoute,

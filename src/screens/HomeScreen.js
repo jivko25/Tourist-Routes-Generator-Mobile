@@ -7,16 +7,19 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Banner, Text } from 'react-native-paper';
+import { Banner, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SearchBar } from '../components/SearchBar';
 import { usePlaces } from '../hooks/usePlaces';
 import { useTravel } from '../context/TravelContext';
+import { formatRadiusLabel } from '../utils/googleMaps';
+import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
 import { colors, radii, spacing } from '../theme/colors';
+import { CategoryFilter } from '../components/CategoryFilter';
 
 export function HomeScreen({ navigation }) {
-  const [query, setQuery] = useState('Paris');
-  const { selectedAttractions } = useTravel();
+  const [query, setQuery] = useState('');
+  const { selectedAttractions, settings, updateSettings } = useTravel();
   const { loading, error, setError, searchCityAttractions } = usePlaces();
   const heroOpacity = useRef(new Animated.Value(0)).current;
   const heroTranslate = useRef(new Animated.Value(18)).current;
@@ -53,6 +56,17 @@ export function HomeScreen({ navigation }) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <View style={styles.topBar}>
+          <View style={styles.topBarSpacer} />
+          <IconButton
+            icon="cog-outline"
+            iconColor={colors.primary}
+            size={26}
+            onPress={() => navigation.navigate('Settings')}
+            accessibilityLabel="Open settings"
+          />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -86,6 +100,18 @@ export function HomeScreen({ navigation }) {
               loading={loading}
             />
 
+            <Text style={styles.filterLabel}>Place types</Text>
+            <CategoryFilter
+              selectedIds={settings.selectedCategories || ['tourist']}
+              onChange={(next) => updateSettings({ selectedCategories: next })}
+            />
+
+            <Text style={styles.radiusHint}>
+              Radius: {formatRadiusLabel(settings.searchRadiusMeters)} ·{' '}
+              {formatSelectedCategoriesLabel(settings.selectedCategories)}
+              {settings.startAddress?.trim() ? ' · Start set' : ''}
+            </Text>
+
             {error ? (
               <Banner
                 visible
@@ -116,7 +142,7 @@ export function HomeScreen({ navigation }) {
               </Text>
             ) : (
               <Text variant="bodyMedium" style={styles.hint}>
-                Tip: try Paris, Rome, or Barcelona.
+                Tip: open Settings to set start/end addresses.
               </Text>
             )}
           </View>
@@ -134,9 +160,19 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  topBarSpacer: {
+    flex: 1,
+  },
   content: {
     flexGrow: 1,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
     justifyContent: 'center',
   },
   hero: {
@@ -167,6 +203,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: spacing.md,
+  },
+  radiusHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  filterLabel: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   banner: {
     backgroundColor: '#FDECEA',

@@ -2,26 +2,38 @@ import { useCallback, useState } from 'react';
 import { geocodeCity } from '../services/geocodingService';
 import { searchNearbyAttractions } from '../services/placesService';
 import { useTravel } from '../context/TravelContext';
+import { resolvePlaceTypes } from '../constants/placeCategories';
 
 /**
  * Encapsulates city search + nearby attractions flow.
  */
 export function usePlaces() {
-  const { setSearchResult } = useTravel();
+  const { setSearchResult, settings } = useTravel();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const searchCityAttractions = useCallback(
-    async (cityName) => {
+    async (cityName, overrides = {}) => {
       setLoading(true);
       setError(null);
 
       try {
+        const categories =
+          overrides.selectedCategories || settings.selectedCategories;
+        const radius =
+          overrides.searchRadiusMeters ?? settings.searchRadiusMeters;
+
         const city = await geocodeCity(cityName);
-        const attractions = await searchNearbyAttractions({
-          latitude: city.latitude,
-          longitude: city.longitude,
-        });
+        const attractions = await searchNearbyAttractions(
+          {
+            latitude: city.latitude,
+            longitude: city.longitude,
+          },
+          {
+            radius,
+            includedTypes: resolvePlaceTypes(categories),
+          }
+        );
 
         setSearchResult(city, attractions);
         return { city, attractions };
@@ -36,11 +48,15 @@ export function usePlaces() {
         setLoading(false);
       }
     },
-    [setSearchResult]
+    [
+      setSearchResult,
+      settings.searchRadiusMeters,
+      settings.selectedCategories,
+    ]
   );
 
   const refreshAttractions = useCallback(
-    async (cityCoordinates, cityName) => {
+    async (cityCoordinates, cityName, overrides = {}) => {
       if (!cityCoordinates) {
         setError('No city selected to refresh.');
         return [];
@@ -50,7 +66,15 @@ export function usePlaces() {
       setError(null);
 
       try {
-        const attractions = await searchNearbyAttractions(cityCoordinates);
+        const categories =
+          overrides.selectedCategories || settings.selectedCategories;
+        const radius =
+          overrides.searchRadiusMeters ?? settings.searchRadiusMeters;
+
+        const attractions = await searchNearbyAttractions(cityCoordinates, {
+          radius,
+          includedTypes: resolvePlaceTypes(categories),
+        });
         setSearchResult(
           {
             id: `city_${cityName || 'refresh'}`,
@@ -72,7 +96,11 @@ export function usePlaces() {
         setLoading(false);
       }
     },
-    [setSearchResult]
+    [
+      setSearchResult,
+      settings.searchRadiusMeters,
+      settings.selectedCategories,
+    ]
   );
 
   return {

@@ -14,9 +14,17 @@ import { openGoogleMapsRoute } from '../services/mapsService';
 import { colors, radii, spacing } from '../theme/colors';
 
 export function RouteScreen({ navigation }) {
-  const { selectedAttractions, removeAttraction, clearRoute } = useTravel();
+  const {
+    selectedAttractions,
+    removeAttraction,
+    clearRoute,
+    settings,
+  } = useTravel();
   const [opening, setOpening] = useState(false);
   const listOpacity = useRef(new Animated.Value(0)).current;
+
+  const startAddress = settings.startAddress?.trim() || '';
+  const endAddress = settings.endAddress?.trim() || '';
 
   React.useEffect(() => {
     Animated.timing(listOpacity, {
@@ -29,7 +37,10 @@ export function RouteScreen({ navigation }) {
   const handleGenerateRoute = async () => {
     setOpening(true);
     try {
-      await openGoogleMapsRoute(selectedAttractions);
+      await openGoogleMapsRoute(selectedAttractions, {
+        origin: startAddress,
+        destination: endAddress,
+      });
     } catch (error) {
       Alert.alert('Route error', error.message || 'Could not open Google Maps.');
     } finally {
@@ -48,6 +59,9 @@ export function RouteScreen({ navigation }) {
     ]);
   };
 
+  const canGenerate =
+    selectedAttractions.length > 0 || Boolean(startAddress || endAddress);
+
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -57,6 +71,28 @@ export function RouteScreen({ navigation }) {
         <Text variant="bodyMedium" style={styles.subtitle}>
           Places will open in Google Maps in this order.
         </Text>
+
+        <View style={styles.endpoints}>
+          <Text style={styles.endpointLabel}>Start</Text>
+          <Text style={styles.endpointValue}>
+            {startAddress || 'First selected attraction'}
+          </Text>
+          <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
+            End
+          </Text>
+          <Text style={styles.endpointValue}>
+            {endAddress || 'Last selected attraction'}
+          </Text>
+          <Button
+            mode="text"
+            compact
+            onPress={() => navigation.navigate('Settings')}
+            textColor={colors.primary}
+            style={styles.editSettings}
+          >
+            Edit in Settings
+          </Button>
+        </View>
 
         <Animated.View style={{ opacity: listOpacity }}>
           {selectedAttractions.length === 0 ? (
@@ -88,12 +124,12 @@ export function RouteScreen({ navigation }) {
         </Animated.View>
       </ScrollView>
 
-      {selectedAttractions.length > 0 ? (
+      {canGenerate ? (
         <View style={styles.actions}>
           <Button
             mode="contained"
             loading={opening}
-            disabled={opening}
+            disabled={opening || selectedAttractions.length === 0}
             onPress={handleGenerateRoute}
             buttonColor={colors.secondary}
             textColor="#FFFFFF"
@@ -106,6 +142,7 @@ export function RouteScreen({ navigation }) {
           <Button
             mode="outlined"
             onPress={handleClearRoute}
+            disabled={selectedAttractions.length === 0}
             textColor={colors.error}
             style={styles.secondaryAction}
             contentStyle={styles.actionContent}
@@ -135,6 +172,34 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
+  },
+  endpoints: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  endpointLabel: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  endpointLabelSpaced: {
+    marginTop: spacing.md,
+  },
+  endpointValue: {
+    color: colors.text,
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  editSettings: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    marginLeft: -8,
   },
   empty: {
     backgroundColor: colors.surface,

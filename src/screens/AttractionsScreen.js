@@ -1,15 +1,23 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
   StyleSheet,
   View,
 } from 'react-native';
-import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Button,
+  Searchbar,
+  Text,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractionCard } from '../components/AttractionCard';
+import { CategoryFilter } from '../components/CategoryFilter';
 import { usePlaces } from '../hooks/usePlaces';
 import { useTravel } from '../context/TravelContext';
+import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
+import { formatRadiusLabel } from '../utils/googleMaps';
 import { colors, spacing } from '../theme/colors';
 
 export function AttractionsScreen({ navigation }) {
@@ -18,11 +26,31 @@ export function AttractionsScreen({ navigation }) {
     searchedCity,
     cityCoordinates,
     selectedAttractions,
+    settings,
+    updateSettings,
     toggleAttraction,
     isAttractionSelected,
   } = useTravel();
   const { loading, error, setError, refreshAttractions } = usePlaces();
   const [refreshing, setRefreshing] = useState(false);
+  const [listQuery, setListQuery] = useState('');
+
+  const filteredAttractions = useMemo(() => {
+    const query = listQuery.trim().toLowerCase();
+    if (!query) return attractions;
+
+    return attractions.filter((item) => {
+      const haystack = [
+        item.name,
+        item.category,
+        item.description,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [attractions, listQuery]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -35,12 +63,41 @@ export function AttractionsScreen({ navigation }) {
     }
   }, [cityCoordinates, searchedCity, refreshAttractions]);
 
+  const handleCategoriesChange = useCallback(
+    async (nextCategories) => {
+      updateSettings({ selectedCategories: nextCategories });
+      if (!cityCoordinates) return;
+
+      try {
+        await refreshAttractions(cityCoordinates, searchedCity, {
+          selectedCategories: nextCategories,
+        });
+      } catch {
+        // Error handled in hook.
+      }
+    },
+    [updateSettings, cityCoordinates, searchedCity, refreshAttractions]
+  );
+
   const renderEmpty = () => {
     if (loading && !refreshing) {
       return (
         <View style={styles.centered}>
           <ActivityIndicator animating color={colors.primary} size="large" />
-          <Text style={styles.emptyText}>Finding attractions…</Text>
+          <Text style={styles.emptyText}>Finding places…</Text>
+        </View>
+      );
+    }
+
+    if (listQuery.trim() && attractions.length > 0) {
+      return (
+        <View style={styles.centered}>
+          <Text variant="titleMedium" style={styles.emptyTitle}>
+            No matches
+          </Text>
+          <Text style={styles.emptyText}>
+            Nothing matches “{listQuery.trim()}”. Try another search term.
+          </Text>
         </View>
       );
     }
@@ -48,10 +105,10 @@ export function AttractionsScreen({ navigation }) {
     return (
       <View style={styles.centered}>
         <Text variant="titleMedium" style={styles.emptyTitle}>
-          No attractions found
+          No places found
         </Text>
         <Text style={styles.emptyText}>
-          Try another city or pull down to refresh.
+          Try other categories, a larger radius, or another city.
         </Text>
         <Button mode="outlined" onPress={() => navigation.navigate('Home')}>
           Search again
@@ -64,12 +121,30 @@ export function AttractionsScreen({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.title}>
-          {searchedCity || 'Attractions'}
+          {searchedCity || 'Places'}
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          {attractions.length} tourist attraction
-          {attractions.length === 1 ? '' : 's'} nearby
+          {filteredAttractions.length}
+          {listQuery.trim() ? ` / ${attractions.length}` : ''} place
+          {filteredAttractions.length === 1 ? '' : 's'} ·{' '}
+          {formatRadiusLabel(settings.searchRadiusMeters)} ·{' '}
+          {formatSelectedCategoriesLabel(settings.selectedCategories)}
         </Text>
+
+        <Searchbar
+          placeholder="Search places…"
+          value={listQuery}
+          onChangeText={setListQuery}
+          style={styles.search}
+          inputStyle={styles.searchInput}
+          iconColor={colors.primary}
+        />
+
+        <CategoryFilter
+          selectedIds={settings.selectedCategories || ['tourist']}
+          onChange={handleCategoriesChange}
+        />
+
         {error ? (
           <Text style={styles.error} onPress={() => setError(null)}>
             {error}
@@ -78,15 +153,15 @@ export function AttractionsScreen({ navigation }) {
       </View>
 
       <FlatList
-        data={attractions}
+        data={filteredAttractions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.list,
-          attractions.length === 0 && styles.listEmpty,
+          filteredAttractions.length === 0 && styles.listEmpty,
         ]}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={refreshing || (loading && !refreshing)}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
@@ -134,6 +209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   title: {
     color: colors.primary,
@@ -141,11 +217,18 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textMuted,
-    marginTop: spacing.xs,
+  },
+  search: {
+    backgroundColor: colors.surface,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    minHeight: 0,
   },
   error: {
     color: colors.error,
-    marginTop: spacing.sm,
   },
   list: {
     paddingHorizontal: spacing.lg,

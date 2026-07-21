@@ -1,9 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEFAULT_SEARCH_RADIUS_METERS } from '../utils/config';
+import { DEFAULT_PLACE_CATEGORY_IDS } from '../constants/placeCategories';
 
 const STORAGE_KEYS = {
   SELECTED_ATTRACTIONS: '@travel/selected_attractions',
   LAST_CITY: '@travel/last_city',
+  SETTINGS: '@travel/settings',
 };
+
+export const DEFAULT_SETTINGS = {
+  startAddress: '',
+  endAddress: '',
+  searchRadiusMeters: DEFAULT_SEARCH_RADIUS_METERS,
+  selectedCategories: [...DEFAULT_PLACE_CATEGORY_IDS],
+};
+
+function normalizeCategories(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [...DEFAULT_PLACE_CATEGORY_IDS];
+  }
+  return value.filter((id) => typeof id === 'string');
+}
 
 /**
  * Local persistence layer — ready for saved trips / offline mode later.
@@ -32,6 +49,28 @@ export const storageService = {
   async loadLastCity() {
     const raw = await AsyncStorage.getItem(STORAGE_KEYS.LAST_CITY);
     return raw ? JSON.parse(raw) : null;
+  },
+
+  async saveSettings(settings) {
+    await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  },
+
+  async loadSettings() {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        searchRadiusMeters:
+          Number(parsed.searchRadiusMeters) || DEFAULT_SEARCH_RADIUS_METERS,
+        selectedCategories: normalizeCategories(parsed.selectedCategories),
+      };
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
   },
 
   async clearRouteData() {

@@ -5,6 +5,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { AttractionsScreen } from '../screens/AttractionsScreen';
 import { AttractionDetailScreen } from '../screens/AttractionDetailScreen';
 import { RouteScreen } from '../screens/RouteScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -48,6 +49,11 @@ export function AppNavigator() {
           name="Route"
           component={RouteScreen}
           options={{ title: 'Your Route' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Settings' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
