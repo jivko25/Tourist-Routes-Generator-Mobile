@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTravel } from '../context/TravelContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { shareGoogleMapsRoute } from '../services/mapsService';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -35,6 +36,7 @@ export function SavedRoutesScreen({ navigation }) {
   } = useTravel();
   const { isOffline } = useNetworkStatus();
   const [loadingId, setLoadingId] = useState(null);
+  const [sharingId, setSharingId] = useState(null);
 
   const sortedRoutes = useMemo(
     () =>
@@ -65,6 +67,28 @@ export function SavedRoutesScreen({ navigation }) {
         onPress: () => deleteSavedRoute(route.id),
       },
     ]);
+  };
+
+  const handleShare = async (route) => {
+    setSharingId(route.id);
+    try {
+      await shareGoogleMapsRoute(route.attractions || [], {
+        url: route.googleMapsUrl || undefined,
+        origin: route.startAddress,
+        destination: route.endAddress,
+        travelMode: route.travelMode,
+        title: route.name || 'Travel Go route',
+      });
+    } catch (error) {
+      if (error?.message !== 'User did not share') {
+        Alert.alert(
+          'Share failed',
+          error?.message || 'Could not share this Google Maps link.'
+        );
+      }
+    } finally {
+      setSharingId(null);
+    }
   };
 
   const renderItem = ({ item }) => {
@@ -118,6 +142,19 @@ export function SavedRoutesScreen({ navigation }) {
               labelStyle={styles.actionLabel}
             >
               Open
+            </Button>
+            <Button
+              mode="outlined"
+              compact
+              loading={sharingId === item.id}
+              disabled={sharingId === item.id}
+              onPress={() => handleShare(item)}
+              textColor={colors.primary}
+              style={styles.shareBtn}
+              labelStyle={styles.actionLabel}
+              icon="share-variant"
+            >
+              Share
             </Button>
             <Button
               mode="text"
@@ -272,10 +309,14 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginTop: spacing.sm,
     gap: spacing.sm,
   },
   openBtn: {
+    borderRadius: radii.pill,
+  },
+  shareBtn: {
     borderRadius: radii.pill,
   },
   actionLabel: {

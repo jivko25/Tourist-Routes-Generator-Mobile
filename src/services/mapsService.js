@@ -1,4 +1,4 @@
-import { Linking } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 import { buildGoogleMapsDirectionsUrl } from '../utils/googleMaps';
 import { DEFAULT_TRAVEL_MODE } from '../utils/config';
 
@@ -41,4 +41,58 @@ export async function openGoogleMapsRoute(attractions, options = {}) {
 
   await Linking.openURL(url);
   return url;
+}
+
+/**
+ * Opens the system share sheet with a Google Maps directions link
+ * (WhatsApp, Messenger, Mail, etc. depending on installed apps).
+ *
+ * @param {Array<{ name?: string, latitude: number, longitude: number }>} attractions
+ * @param {{
+ *   origin?: string,
+ *   destination?: string,
+ *   travelMode?: string,
+ *   title?: string,
+ *   url?: string,
+ * }} [options]
+ * @returns {Promise<{ url: string, action: string }>}
+ */
+export async function shareGoogleMapsRoute(attractions, options = {}) {
+  const url =
+    options.url ||
+    generateGoogleMapsRoute(attractions, {
+      origin: options.origin,
+      destination: options.destination,
+      travelMode: options.travelMode,
+    });
+
+  const title = options.title?.trim() || 'Travel Go route';
+  const stopNames = (attractions || [])
+    .map((place) => place?.name)
+    .filter(Boolean)
+    .slice(0, 5);
+  const stopsLine =
+    stopNames.length > 0
+      ? stopNames.join(' → ') +
+        ((attractions?.length || 0) > stopNames.length
+          ? ` +${attractions.length - stopNames.length} more`
+          : '')
+      : '';
+
+  const messageParts = [title];
+  if (stopsLine) messageParts.push(stopsLine);
+  messageParts.push('', 'Open in Google Maps:', url);
+
+  const message = messageParts.join('\n');
+
+  const result = await Share.share(
+    Platform.OS === 'ios'
+      ? { title, message, url }
+      : { title, message }
+  );
+
+  return {
+    url,
+    action: result?.action || Share.sharedAction,
+  };
 }

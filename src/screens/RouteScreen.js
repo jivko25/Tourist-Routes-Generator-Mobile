@@ -14,7 +14,7 @@ import { OfflineBanner } from '../components/OfflineBanner';
 import { useTravel } from '../context/TravelContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { geocodeCity } from '../services/geocodingService';
-import { openGoogleMapsRoute } from '../services/mapsService';
+import { openGoogleMapsRoute, shareGoogleMapsRoute } from '../services/mapsService';
 import { fetchRouteTravelEstimate } from '../services/directionsService';
 import { fetchPlaceDetails } from '../services/placesService';
 import { getCurrentGpsPosition } from '../services/locationService';
@@ -46,6 +46,7 @@ export function RouteScreen({ navigation }) {
   } = useTravel();
   const { isOffline } = useNetworkStatus();
   const [opening, setOpening] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
@@ -359,22 +360,26 @@ export function RouteScreen({ navigation }) {
     setGpsEndPoint(null);
   };
 
+  const getMapsRouteOptions = () => {
+    const origin = gpsStartPoint
+      ? `${gpsStartPoint.latitude},${gpsStartPoint.longitude}`
+      : startAddress;
+    const destination = gpsEndPoint
+      ? `${gpsEndPoint.latitude},${gpsEndPoint.longitude}`
+      : endAddress;
+
+    return {
+      origin,
+      destination,
+      travelMode: settings.travelMode,
+    };
+  };
+
   const handleGenerateRoute = async () => {
     const openMaps = async () => {
       setOpening(true);
       try {
-        const origin = gpsStartPoint
-          ? `${gpsStartPoint.latitude},${gpsStartPoint.longitude}`
-          : startAddress;
-        const destination = gpsEndPoint
-          ? `${gpsEndPoint.latitude},${gpsEndPoint.longitude}`
-          : endAddress;
-
-        await openGoogleMapsRoute(selectedAttractions, {
-          origin,
-          destination,
-          travelMode: settings.travelMode,
-        });
+        await openGoogleMapsRoute(selectedAttractions, getMapsRouteOptions());
       } catch (error) {
         Alert.alert('Route error', error.message || 'Could not open Google Maps.');
       } finally {
@@ -395,6 +400,28 @@ export function RouteScreen({ navigation }) {
     }
 
     await openMaps();
+  };
+
+  const handleShareRoute = async () => {
+    setSharing(true);
+    try {
+      const cityLabel = searchedCity?.split(',')?.[0];
+      await shareGoogleMapsRoute(selectedAttractions, {
+        ...getMapsRouteOptions(),
+        title: cityLabel
+          ? `${cityLabel} · Travel Go route`
+          : 'Travel Go route',
+      });
+    } catch (error) {
+      if (error?.message !== 'User did not share') {
+        Alert.alert(
+          'Share failed',
+          error?.message || 'Could not share this Google Maps link.'
+        );
+      }
+    } finally {
+      setSharing(false);
+    }
   };
 
   const handleClearRoute = () => {
@@ -743,7 +770,7 @@ export function RouteScreen({ navigation }) {
           <Button
             mode="contained"
             loading={opening}
-            disabled={opening}
+            disabled={opening || sharing}
             onPress={handleGenerateRoute}
             buttonColor={colors.accent}
             textColor="#FFFFFF"
@@ -753,6 +780,20 @@ export function RouteScreen({ navigation }) {
             labelStyle={styles.actionLabel}
           >
             Generate Google Maps Route
+          </Button>
+          <Button
+            mode="contained"
+            loading={sharing}
+            disabled={opening || sharing}
+            onPress={handleShareRoute}
+            buttonColor={colors.primary}
+            textColor="#FFFFFF"
+            style={styles.primaryAction}
+            contentStyle={styles.actionContent}
+            icon="share-variant"
+            labelStyle={styles.actionLabel}
+          >
+            Share Google Maps link
           </Button>
           <Button
             mode="outlined"
