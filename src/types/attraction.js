@@ -20,6 +20,24 @@
  */
 
 /**
+ * @typedef {Object} AttractionReview
+ * @property {string} id
+ * @property {string} authorName
+ * @property {string|null} authorPhotoUrl
+ * @property {number|null} rating
+ * @property {string} text
+ * @property {string} relativeTime
+ * @property {string|null} publishTime
+ */
+
+/**
+ * @typedef {Object} AttractionPriceRange
+ * @property {string|null} startLabel
+ * @property {string|null} endLabel
+ * @property {string|null} label
+ */
+
+/**
  * @typedef {Object} Attraction
  * @property {string} id
  * @property {string} name
@@ -31,6 +49,12 @@
  * @property {AttractionPhoto[]} photos
  * @property {number|null} rating
  * @property {number|null} userRatingCount
+ * @property {string|null} primaryType
+ * @property {string|null} priceLevel
+ * @property {AttractionPriceRange|null} priceRange
+ * @property {AttractionReview[]} reviews
+ * @property {string|null} websiteUri
+ * @property {string|null} googleMapsUri
  */
 
 /**
@@ -63,5 +87,11 @@ export function createAttraction(data) {
     rating: typeof data.rating === 'number' ? data.rating : null,
     userRatingCount:
       typeof data.userRatingCount === 'number' ? data.userRatingCount : null,
+    primaryType: data.primaryType || null,
+    priceLevel: data.priceLevel || null,
+    priceRange: data.priceRange || null,
+    reviews: Array.isArray(data.reviews) ? data.reviews : [],
+    websiteUri: data.websiteUri || null,
+    googleMapsUri: data.googleMapsUri || null,
   };
 }

@@ -12,6 +12,7 @@ import {
 import { mapPlacePhotos } from '../utils/placePhotos';
 import { haversineDistanceKm } from '../utils/routeOptimization';
 import { getPopularityScore } from '../utils/attractionSort';
+import { mapPriceRange } from '../utils/placePricing';
 
 const PLACE_FIELD_MASK = [
   'places.displayName',
@@ -19,10 +20,28 @@ const PLACE_FIELD_MASK = [
   'places.id',
   'places.photos',
   'places.editorialSummary',
+  'places.primaryType',
   'places.primaryTypeDisplayName',
   'places.rating',
   'places.userRatingCount',
   'nextPageToken',
+].join(',');
+
+const PLACE_DETAILS_FIELD_MASK = [
+  'id',
+  'displayName',
+  'location',
+  'photos',
+  'editorialSummary',
+  'primaryType',
+  'primaryTypeDisplayName',
+  'rating',
+  'userRatingCount',
+  'priceLevel',
+  'priceRange',
+  'reviews',
+  'websiteUri',
+  'googleMapsUri',
 ].join(',');
 
 const TYPE_TEXT_QUERIES = {
@@ -89,10 +108,39 @@ function circleToRectangle(center, radiusMeters) {
 
 /**
  * @param {object} place
- * @param {string} placeType
+ * @returns {import('../types/attraction').AttractionReview[]}
+ */
+function mapPlaceReviews(place) {
+  if (!Array.isArray(place?.reviews)) return [];
+
+  return place.reviews
+    .map((review, index) => {
+      const text =
+        review?.text?.text ||
+        review?.originalText?.text ||
+        '';
+      const authorName =
+        review?.authorAttribution?.displayName || 'Google user';
+
+      return {
+        id: review?.name || `${place.id || 'review'}_${index}`,
+        authorName,
+        authorPhotoUrl: review?.authorAttribution?.photoUri || null,
+        rating: typeof review?.rating === 'number' ? review.rating : null,
+        text: String(text).trim(),
+        relativeTime: review?.relativePublishTimeDescription || '',
+        publishTime: review?.publishTime || null,
+      };
+    })
+    .filter((review) => review.text.length > 0 || review.rating != null);
+}
+
+/**
+ * @param {object} place
+ * @param {string} [placeType]
  * @returns {import('../types/attraction').Attraction | null}
  */
-function mapPlaceToAttraction(place, placeType) {
+function mapPlaceToAttraction(place, placeType = '') {
   const latitude = place.location?.latitude;
   const longitude = place.location?.longitude;
   const name = place.displayName?.text;
@@ -108,12 +156,52 @@ function mapPlaceToAttraction(place, placeType) {
     latitude,
     longitude,
     category:
-      place.primaryTypeDisplayName?.text || placeType.replace(/_/g, ' '),
+      place.primaryTypeDisplayName?.text ||
+      (placeType ? placeType.replace(/_/g, ' ') : 'Place'),
     description: place.editorialSummary?.text || '',
     photos: mapPlacePhotos(place.photos, 8),
     rating: place.rating,
     userRatingCount: place.userRatingCount,
+    primaryType: place.primaryType || placeType || null,
+    priceLevel: place.priceLevel || null,
+    priceRange: mapPriceRange(place.priceRange),
+    reviews: mapPlaceReviews(place),
+    websiteUri: place.websiteUri || null,
+    googleMapsUri: place.googleMapsUri || null,
   });
+}
+
+/**
+ * Fetches Place Details (reviews, pricing, website) for a place id.
+ *
+ * @param {string} placeId
+ * @returns {Promise<import('../types/attraction').Attraction>}
+ */
+export async function fetchPlaceDetails(placeId) {
+  if (!placeId) {
+    throw new Error('A Google Place ID is required.');
+  }
+
+  const apiKey = getGooglePlacesApiKey();
+  const resourceName = placeId.startsWith('places/')
+    ? placeId
+    : `places/${placeId}`;
+
+  const response = await axios.get(`${PLACES_API_BASE_URL}/${resourceName}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': PLACE_DETAILS_FIELD_MASK,
+    },
+    timeout: 20000,
+  });
+
+  const mapped = mapPlaceToAttraction(response.data);
+  if (!mapped) {
+    throw new Error('Place details response was incomplete.');
+  }
+
+  return mapped;
 }
 
 /**

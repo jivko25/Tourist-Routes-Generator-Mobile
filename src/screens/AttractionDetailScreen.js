@@ -1,20 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
+  Linking,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PhotoGallery } from '../components/PhotoGallery';
 import { PlaceMap } from '../components/PlaceMap';
+import { PlacePricingCard } from '../components/PlacePricingCard';
+import { ReviewsList } from '../components/ReviewsList';
 import { useTravel } from '../context/TravelContext';
+import { fetchPlaceDetails } from '../services/placesService';
 import { formatCoordinate } from '../utils/googleMaps';
 import {
   formatDistanceKm,
   haversineDistanceKm,
 } from '../utils/routeOptimization';
+import { getPricingDisplay, isFoodPlace, isTicketedPlace } from '../utils/placePricing';
 import { colors, radii, spacing } from '../theme/colors';
 
 const GALLERY_WIDTH = Dimensions.get('window').width - spacing.lg * 2;
@@ -30,14 +35,32 @@ export function AttractionDetailScreen({ route, navigation }) {
     isAttractionSelected,
   } = useTravel();
   const [toggling, setToggling] = useState(false);
+  const [details, setDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
 
-  const attraction = useMemo(() => {
+  const baseAttraction = useMemo(() => {
     return (
       attractions.find((item) => item.id === attractionId) ||
       selectedAttractions.find((item) => item.id === attractionId) ||
       null
     );
   }, [attractionId, attractions, selectedAttractions]);
+
+  const attraction = useMemo(() => {
+    if (!baseAttraction) return null;
+    if (!details) return baseAttraction;
+    return {
+      ...baseAttraction,
+      ...details,
+      photos:
+        details.photos?.length > 0 ? details.photos : baseAttraction.photos,
+      description: details.description || baseAttraction.description,
+      reviews: details.reviews?.length
+        ? details.reviews
+        : baseAttraction.reviews || [],
+    };
+  }, [baseAttraction, details]);
 
   const selected = attraction
     ? isAttractionSelected(attraction.id)
@@ -52,6 +75,43 @@ export function AttractionDetailScreen({ route, navigation }) {
     const timeout = setTimeout(() => setToggling(false), 1200);
     return () => clearTimeout(timeout);
   }, [toggling]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const placeId = baseAttraction?.googlePlaceId || baseAttraction?.id;
+
+    if (!placeId) {
+      setDetails(null);
+      setDetailsLoading(false);
+      setDetailsError(null);
+      return undefined;
+    }
+
+    setDetails(null);
+    setDetailsLoading(true);
+    setDetailsError(null);
+
+    fetchPlaceDetails(placeId)
+      .then((enriched) => {
+        if (!cancelled) setDetails(enriched);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDetailsError(
+            error?.response?.data?.error?.message ||
+              error?.message ||
+              'Could not load Google place details.'
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseAttraction?.googlePlaceId, baseAttraction?.id]);
 
   const distanceFromCity = useMemo(() => {
     if (
@@ -82,6 +142,16 @@ export function AttractionDetailScreen({ route, navigation }) {
       </SafeAreaView>
     );
   }
+
+  const foodPlace = isFoodPlace(attraction);
+  const ticketedPlace = isTicketedPlace(attraction);
+  const hasPricing = Boolean(getPricingDisplay(attraction));
+  const showPricing =
+    foodPlace || ticketedPlace || hasPricing || detailsLoading;
+  const showReviews =
+    foodPlace ||
+    (attraction.reviews?.length || 0) > 0 ||
+    detailsLoading;
 
   const handleToggle = () => {
     if (toggling) return;
@@ -124,6 +194,15 @@ export function AttractionDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
+        {showPricing ? (
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              {foodPlace ? 'Prices' : 'Tickets & prices'}
+            </Text>
+            <PlacePricingCard place={attraction} loading={detailsLoading} />
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Text variant="titleMedium" style={styles.sectionTitle}>
             About
@@ -133,6 +212,39 @@ export function AttractionDetailScreen({ route, navigation }) {
               'No editorial description is available for this place yet.'}
           </Text>
         </View>
+
+        {showReviews ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitleInline}>
+                Google reviews
+              </Text>
+              {detailsLoading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : null}
+            </View>
+            <ReviewsList
+              reviews={attraction.reviews || []}
+              rating={attraction.rating}
+              userRatingCount={attraction.userRatingCount}
+              loading={detailsLoading && !(attraction.reviews || []).length}
+            />
+            {attraction.googleMapsUri ? (
+              <Button
+                mode="text"
+                textColor={colors.primaryDark}
+                onPress={() => Linking.openURL(attraction.googleMapsUri)}
+                style={styles.mapsLink}
+              >
+                See more on Google Maps
+              </Button>
+            ) : null}
+          </View>
+        ) : null}
+
+        {detailsError ? (
+          <Text style={styles.detailsError}>{detailsError}</Text>
+        ) : null}
 
         <View style={styles.section}>
           <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -228,15 +340,35 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.md,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
   sectionTitle: {
     color: colors.text,
     fontWeight: '700',
     marginBottom: spacing.sm,
   },
+  sectionTitleInline: {
+    color: colors.text,
+    fontWeight: '700',
+  },
   description: {
     color: colors.text,
     lineHeight: 24,
     fontSize: 16,
+  },
+  mapsLink: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    marginLeft: -8,
+  },
+  detailsError: {
+    color: colors.error,
+    marginTop: spacing.md,
+    fontSize: 13,
   },
   footer: {
     padding: spacing.lg,
