@@ -15,6 +15,9 @@ module.exports = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.touristroutes.generator',
+    config: {
+      googleMapsApiKey: process.env.GOOGLE_PLACES_API_KEY,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -24,6 +27,11 @@ module.exports = {
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     package: 'com.touristroutes.generator',
+    config: {
+      googleMaps: {
+        apiKey: process.env.GOOGLE_PLACES_API_KEY,
+      },
+    },
   },
   web: {
     favicon: './assets/favicon.png',

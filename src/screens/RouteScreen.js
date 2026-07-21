@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -8,25 +8,38 @@ import {
 } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PlaceMap } from '../components/PlaceMap';
 import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
 import { useTravel } from '../context/TravelContext';
+import { geocodeCity } from '../services/geocodingService';
 import { openGoogleMapsRoute } from '../services/mapsService';
+import {
+  formatDistanceKm,
+  optimizeAttractionOrder,
+} from '../utils/routeOptimization';
+import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
 export function RouteScreen({ navigation }) {
   const {
     selectedAttractions,
     removeAttraction,
+    reorderSelectedAttractions,
     clearRoute,
     settings,
+    cityCoordinates,
   } = useTravel();
   const [opening, setOpening] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [startPoint, setStartPoint] = useState(null);
+  const [endPoint, setEndPoint] = useState(null);
+  const [routeStats, setRouteStats] = useState(null);
   const listOpacity = useRef(new Animated.Value(0)).current;
 
   const startAddress = settings.startAddress?.trim() || '';
   const endAddress = settings.endAddress?.trim() || '';
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.timing(listOpacity, {
       toValue: 1,
       duration: 400,
@@ -34,12 +47,111 @@ export function RouteScreen({ navigation }) {
     }).start();
   }, [listOpacity, selectedAttractions.length]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function resolveEndpoints() {
+      try {
+        const [start, end] = await Promise.all([
+          startAddress
+            ? geocodeCity(startAddress).catch(() => null)
+            : Promise.resolve(null),
+          endAddress
+            ? geocodeCity(endAddress).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        if (!mounted) return;
+        setStartPoint(
+          start
+            ? {
+                id: 'route-start',
+                name: start.name || startAddress,
+                latitude: start.latitude,
+                longitude: start.longitude,
+                role: 'start',
+              }
+            : null
+        );
+        setEndPoint(
+          end
+            ? {
+                id: 'route-end',
+                name: end.name || endAddress,
+                latitude: end.latitude,
+                longitude: end.longitude,
+                role: 'end',
+              }
+            : null
+        );
+      } catch {
+        if (!mounted) return;
+        setStartPoint(null);
+        setEndPoint(null);
+      }
+    }
+
+    resolveEndpoints();
+    return () => {
+      mounted = false;
+    };
+  }, [startAddress, endAddress]);
+
+  const mapPoints = useMemo(() => {
+    const stops = selectedAttractions.map((attraction, index) => ({
+      id: attraction.id,
+      name: `${index + 1}. ${attraction.name}`,
+      latitude: attraction.latitude,
+      longitude: attraction.longitude,
+      role: 'stop',
+    }));
+
+    return [
+      ...(startPoint ? [startPoint] : []),
+      ...stops,
+      ...(endPoint ? [endPoint] : []),
+    ];
+  }, [selectedAttractions, startPoint, endPoint]);
+
+  useEffect(() => {
+    if (selectedAttractions.length === 0) {
+      setRouteStats(null);
+      return;
+    }
+
+    const result = optimizeAttractionOrder(selectedAttractions, {
+      start: startPoint,
+      end: endPoint,
+    });
+
+    setRouteStats({
+      currentDistanceKm: result.originalDistanceKm,
+      optimizedDistanceKm: result.distanceKm,
+      canImprove:
+        result.ordered.map((item) => item.id).join('|') !==
+        selectedAttractions.map((item) => item.id).join('|'),
+      optimizedOrder: result.ordered,
+    });
+  }, [selectedAttractions, startPoint, endPoint]);
+
+  const handleOptimizeRoute = () => {
+    if (!routeStats?.optimizedOrder?.length) return;
+
+    setOptimizing(true);
+    try {
+      reorderSelectedAttractions(routeStats.optimizedOrder);
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   const handleGenerateRoute = async () => {
     setOpening(true);
     try {
       await openGoogleMapsRoute(selectedAttractions, {
         origin: startAddress,
         destination: endAddress,
+        travelMode: settings.travelMode,
       });
     } catch (error) {
       Alert.alert('Route error', error.message || 'Could not open Google Maps.');
@@ -59,8 +171,9 @@ export function RouteScreen({ navigation }) {
     ]);
   };
 
-  const canGenerate =
-    selectedAttractions.length > 0 || Boolean(startAddress || endAddress);
+  const distanceOrigin = startPoint || cityCoordinates || null;
+  const distanceOriginLabel = startPoint ? 'start' : 'city center';
+  const canGenerate = selectedAttractions.length > 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -69,8 +182,31 @@ export function RouteScreen({ navigation }) {
           Your Route
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Places will open in Google Maps in this order.
+          Preview the full path, optimize stop order, then open it in Google
+          Maps.
         </Text>
+
+        {selectedAttractions.length > 0 ? (
+          <View style={styles.mapSection}>
+            <PlaceMap points={mapPoints} showRoute height={260} />
+            {routeStats ? (
+              <Text style={styles.distanceText}>
+                Approx. distance: {formatDistanceKm(routeStats.currentDistanceKm)}
+                {routeStats.canImprove
+                  ? ` · Better order ~${formatDistanceKm(
+                      routeStats.optimizedDistanceKm
+                    )} (save ~${formatDistanceKm(
+                      Math.max(
+                        0,
+                        routeStats.currentDistanceKm -
+                          routeStats.optimizedDistanceKm
+                      )
+                    )})`
+                  : ' · Order looks optimal'}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.endpoints}>
           <Text style={styles.endpointLabel}>Start</Text>
@@ -82,6 +218,12 @@ export function RouteScreen({ navigation }) {
           </Text>
           <Text style={styles.endpointValue}>
             {endAddress || 'Last selected attraction'}
+          </Text>
+          <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
+            Transport
+          </Text>
+          <Text style={styles.endpointValue}>
+            {formatTravelModeLabel(settings.travelMode)}
           </Text>
           <Button
             mode="text"
@@ -117,6 +259,8 @@ export function RouteScreen({ navigation }) {
                 key={attraction.id}
                 attraction={attraction}
                 index={index + 1}
+                origin={distanceOrigin}
+                originLabel={distanceOriginLabel}
                 onRemove={removeAttraction}
               />
             ))
@@ -128,8 +272,21 @@ export function RouteScreen({ navigation }) {
         <View style={styles.actions}>
           <Button
             mode="contained"
+            loading={optimizing}
+            disabled={optimizing || !routeStats?.canImprove}
+            onPress={handleOptimizeRoute}
+            buttonColor={colors.primary}
+            textColor="#FFFFFF"
+            style={styles.primaryAction}
+            contentStyle={styles.actionContent}
+            icon="sitemap"
+          >
+            Optimize stop order
+          </Button>
+          <Button
+            mode="contained"
             loading={opening}
-            disabled={opening || selectedAttractions.length === 0}
+            disabled={opening}
             onPress={handleGenerateRoute}
             buttonColor={colors.secondary}
             textColor="#FFFFFF"
@@ -142,7 +299,6 @@ export function RouteScreen({ navigation }) {
           <Button
             mode="outlined"
             onPress={handleClearRoute}
-            disabled={selectedAttractions.length === 0}
             textColor={colors.error}
             style={styles.secondaryAction}
             contentStyle={styles.actionContent}
@@ -172,6 +328,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
+  },
+  mapSection: {
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  distanceText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
   },
   endpoints: {
     backgroundColor: colors.surface,

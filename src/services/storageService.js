@@ -1,5 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_SEARCH_RADIUS_METERS } from '../utils/config';
+import {
+  DEFAULT_SEARCH_RADIUS_METERS,
+  DEFAULT_TRAVEL_MODE,
+  normalizeTravelMode,
+} from '../utils/config';
 import { DEFAULT_PLACE_CATEGORY_IDS } from '../constants/placeCategories';
 
 const STORAGE_KEYS = {
@@ -13,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   endAddress: '',
   searchRadiusMeters: DEFAULT_SEARCH_RADIUS_METERS,
   selectedCategories: [...DEFAULT_PLACE_CATEGORY_IDS],
+  travelMode: DEFAULT_TRAVEL_MODE,
 };
 
 function normalizeCategories(value) {
@@ -67,6 +72,7 @@ export const storageService = {
         searchRadiusMeters:
           Number(parsed.searchRadiusMeters) || DEFAULT_SEARCH_RADIUS_METERS,
         selectedCategories: normalizeCategories(parsed.selectedCategories),
+        travelMode: normalizeTravelMode(parsed.travelMode),
       };
     } catch {
       return { ...DEFAULT_SETTINGS };

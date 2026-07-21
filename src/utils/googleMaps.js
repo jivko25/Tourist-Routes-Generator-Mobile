@@ -3,6 +3,8 @@
  * Kept separate from services so UI and services can share URL building logic.
  */
 
+import { DEFAULT_TRAVEL_MODE, normalizeTravelMode } from './config';
+
 /**
  * @param {number} latitude
  * @param {number} longitude
@@ -17,13 +19,16 @@ export function formatCoordinatePair(latitude, longitude) {
  * Supports optional address-based origin/destination and attraction waypoints.
  *
  * @param {Array<{ latitude: number, longitude: number }>} places
- * @param {{ origin?: string, destination?: string }} [options]
+ * @param {{ origin?: string, destination?: string, travelMode?: string }} [options]
  * @returns {string}
  */
 export function buildGoogleMapsDirectionsUrl(places, options = {}) {
   const origin = options.origin?.trim() || '';
   const destination = options.destination?.trim() || '';
   const waypoints = Array.isArray(places) ? places : [];
+  const travelMode = normalizeTravelMode(
+    options.travelMode || DEFAULT_TRAVEL_MODE
+  );
   const hasOrigin = Boolean(origin);
   const hasDestination = Boolean(destination);
 
@@ -33,16 +38,10 @@ export function buildGoogleMapsDirectionsUrl(places, options = {}) {
     );
   }
 
-  // Path-style URL when we only have coordinates (no custom addresses).
-  if (!hasOrigin && !hasDestination) {
-    const path = waypoints
-      .map((place) => formatCoordinatePair(place.latitude, place.longitude))
-      .join('/');
-
-    return `https://www.google.com/maps/dir/${path}`;
-  }
-
-  const params = new URLSearchParams({ api: '1', travelmode: 'walking' });
+  const params = new URLSearchParams({
+    api: '1',
+    travelmode: travelMode,
+  });
 
   if (hasOrigin) {
     params.set('origin', origin);
@@ -65,7 +64,9 @@ export function buildGoogleMapsDirectionsUrl(places, options = {}) {
 
   let middle = waypoints;
 
-  if (!hasOrigin && hasDestination && waypoints.length > 0) {
+  if (!hasOrigin && !hasDestination && waypoints.length > 0) {
+    middle = waypoints.slice(1, -1);
+  } else if (!hasOrigin && hasDestination && waypoints.length > 0) {
     middle = waypoints.slice(1);
   } else if (hasOrigin && !hasDestination && waypoints.length > 0) {
     middle = waypoints.slice(0, -1);

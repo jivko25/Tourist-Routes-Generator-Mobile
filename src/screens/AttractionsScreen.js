@@ -172,6 +172,7 @@ export function AttractionsScreen({ navigation }) {
           <AttractionCard
             attraction={item}
             cityName={searchedCity}
+            origin={cityCoordinates}
             selected={isAttractionSelected(item.id)}
             onToggle={toggleAttraction}
             onPressDetails={(attraction) =>

@@ -20,6 +20,7 @@ import {
   MAX_SEARCH_RADIUS_METERS,
   MIN_SEARCH_RADIUS_METERS,
   RADIUS_PRESETS,
+  TRAVEL_MODES,
 } from '../utils/config';
 import { formatRadiusLabel } from '../utils/googleMaps';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
@@ -32,6 +33,9 @@ export function SettingsScreen({ navigation }) {
   const [selectedCategories, setSelectedCategories] = useState(
     settings.selectedCategories || ['tourist']
   );
+  const [travelMode, setTravelMode] = useState(
+    settings.travelMode || 'walking'
+  );
   const [radiusInput, setRadiusInput] = useState(
     String(Math.round(settings.searchRadiusMeters / 1000))
   );
@@ -42,6 +46,7 @@ export function SettingsScreen({ navigation }) {
     setStartAddress(settings.startAddress);
     setEndAddress(settings.endAddress);
     setSelectedCategories(settings.selectedCategories || ['tourist']);
+    setTravelMode(settings.travelMode || 'walking');
     setRadiusInput(String(Math.round(settings.searchRadiusMeters / 1000)));
   }, [isHydrated, settings]);
 
@@ -60,6 +65,7 @@ export function SettingsScreen({ navigation }) {
       endAddress: endAddress.trim(),
       searchRadiusMeters: radiusMeters,
       selectedCategories,
+      travelMode,
     });
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1600);
@@ -126,6 +132,33 @@ export function SettingsScreen({ navigation }) {
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
+              Transport mode
+            </Text>
+            <Text style={styles.helperInline}>
+              Used when opening the route in Google Maps.
+            </Text>
+            <SegmentedButtons
+              value={travelMode}
+              onValueChange={setTravelMode}
+              buttons={TRAVEL_MODES.slice(0, 2).map((mode) => ({
+                value: mode.id,
+                label: mode.shortLabel,
+              }))}
+              style={styles.presets}
+            />
+            <SegmentedButtons
+              value={travelMode}
+              onValueChange={setTravelMode}
+              buttons={TRAVEL_MODES.slice(2).map((mode) => ({
+                value: mode.id,
+                label: mode.shortLabel,
+              }))}
+              style={styles.presets}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
               Place categories
             </Text>
             <Text style={styles.helperInline}>
@@ -157,12 +190,10 @@ export function SettingsScreen({ navigation }) {
                 setRadiusInput(String(meters / 1000));
                 updateSettings({ searchRadiusMeters: meters });
               }}
-              buttons={[
-                ...RADIUS_PRESETS.slice(0, 3).map((preset) => ({
-                  value: String(preset.value),
-                  label: preset.label,
-                })),
-              ]}
+              buttons={RADIUS_PRESETS.slice(0, 3).map((preset) => ({
+                value: String(preset.value),
+                label: preset.label,
+              }))}
               style={styles.presets}
             />
             <SegmentedButtons

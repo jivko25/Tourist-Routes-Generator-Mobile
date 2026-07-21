@@ -5,10 +5,12 @@ import {
   DEFAULT_SEARCH_RADIUS_METERS,
   getGooglePlacesApiKey,
   PLACES_API_BASE_URL,
+  PLACES_NEARBY_MAX_RADIUS_METERS,
 } from '../utils/config';
 import { mapPlacePhotos } from '../utils/placePhotos';
+import { haversineDistanceKm } from '../utils/routeOptimization';
 
-const NEARBY_FIELD_MASK = [
+const PLACE_FIELD_MASK = [
   'places.displayName',
   'places.location',
   'places.id',
@@ -17,6 +19,78 @@ const NEARBY_FIELD_MASK = [
   'places.primaryTypeDisplayName',
   'places.rating',
 ].join(',');
+
+const TYPE_TEXT_QUERIES = {
+  tourist_attraction: 'tourist attractions',
+  museum: 'museums',
+  art_gallery: 'art galleries',
+  performing_arts_theater: 'theaters',
+  cultural_center: 'cultural centers',
+  park: 'parks',
+  national_park: 'national parks',
+  hiking_area: 'hiking areas',
+  historical_landmark: 'historical landmarks',
+  church: 'churches',
+  mosque: 'mosques',
+  synagogue: 'synagogues',
+  hindu_temple: 'hindu temples',
+  amusement_park: 'amusement parks',
+  zoo: 'zoos',
+  aquarium: 'aquariums',
+};
+
+/**
+ * Approximate a circle as a lat/lng bounding rectangle.
+ * Used when radius exceeds Nearby Search's 50 km circle limit.
+ *
+ * @param {{ latitude: number, longitude: number }} center
+ * @param {number} radiusMeters
+ */
+function circleToRectangle(center, radiusMeters) {
+  const latDelta = radiusMeters / 111320;
+  const longitudeScale = Math.cos((center.latitude * Math.PI) / 180);
+  const lngDelta =
+    radiusMeters / (111320 * Math.max(Math.abs(longitudeScale), 0.2));
+
+  return {
+    low: {
+      latitude: center.latitude - latDelta,
+      longitude: center.longitude - lngDelta,
+    },
+    high: {
+      latitude: center.latitude + latDelta,
+      longitude: center.longitude + lngDelta,
+    },
+  };
+}
+
+/**
+ * @param {object} place
+ * @param {string} placeType
+ * @returns {import('../types/attraction').Attraction | null}
+ */
+function mapPlaceToAttraction(place, placeType) {
+  const latitude = place.location?.latitude;
+  const longitude = place.location?.longitude;
+  const name = place.displayName?.text;
+
+  if (!name || typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return null;
+  }
+
+  return createAttraction({
+    id: place.id,
+    googlePlaceId: place.id,
+    name,
+    latitude,
+    longitude,
+    category:
+      place.primaryTypeDisplayName?.text || placeType.replace(/_/g, ' '),
+    description: place.editorialSummary?.text || '',
+    photos: mapPlacePhotos(place.photos, 8),
+    rating: place.rating,
+  });
+}
 
 /**
  * @param {{ latitude: number, longitude: number }} center
@@ -44,45 +118,63 @@ async function searchNearbyByType(center, placeType, options) {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': options.apiKey,
-        'X-Goog-FieldMask': NEARBY_FIELD_MASK,
+        'X-Goog-FieldMask': PLACE_FIELD_MASK,
       },
       timeout: 20000,
     }
   );
 
-  const places = response.data?.places || [];
-
-  return places
-    .map((place) => {
-      const latitude = place.location?.latitude;
-      const longitude = place.location?.longitude;
-      const name = place.displayName?.text;
-
-      if (!name || typeof latitude !== 'number' || typeof longitude !== 'number') {
-        return null;
-      }
-
-      return createAttraction({
-        id: place.id,
-        googlePlaceId: place.id,
-        name,
-        latitude,
-        longitude,
-        category:
-          place.primaryTypeDisplayName?.text ||
-          placeType.replace(/_/g, ' '),
-        description: place.editorialSummary?.text || '',
-        photos: mapPlacePhotos(place.photos, 8),
-        rating: place.rating,
-      });
-    })
+  return (response.data?.places || [])
+    .map((place) => mapPlaceToAttraction(place, placeType))
     .filter(Boolean);
 }
 
 /**
+ * Text Search over a rectangular area — supports radii above the 50 km Nearby limit.
+ *
+ * @param {{ latitude: number, longitude: number }} center
+ * @param {string} placeType
+ * @param {{ radius: number, maxResultCount: number, apiKey: string }} options
+ * @returns {Promise<import('../types/attraction').Attraction[]>}
+ */
+async function searchWideAreaByType(center, placeType, options) {
+  const rectangle = circleToRectangle(center, options.radius);
+  const textQuery =
+    TYPE_TEXT_QUERIES[placeType] || placeType.replace(/_/g, ' ');
+
+  const response = await axios.post(
+    `${PLACES_API_BASE_URL}/places:searchText`,
+    {
+      textQuery,
+      includedType: placeType,
+      maxResultCount: options.maxResultCount,
+      locationRestriction: {
+        rectangle,
+      },
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': options.apiKey,
+        'X-Goog-FieldMask': PLACE_FIELD_MASK,
+      },
+      timeout: 20000,
+    }
+  );
+
+  const radiusKm = options.radius / 1000;
+
+  return (response.data?.places || [])
+    .map((place) => mapPlaceToAttraction(place, placeType))
+    .filter(Boolean)
+    .filter(
+      (attraction) => haversineDistanceKm(center, attraction) <= radiusKm
+    );
+}
+
+/**
  * Searches nearby places using Google Places API (New).
- * Multiple types are queried separately (API uses AND for multi-type),
- * then merged and deduplicated.
+ * Uses Nearby Search up to 50 km; for larger radii uses Text Search + rectangle.
  *
  * @param {{ latitude: number, longitude: number }} center
  * @param {{ radius?: number, maxResultCount?: number, includedTypes?: string[] }} [options]
@@ -104,15 +196,23 @@ export async function searchNearbyAttractions(center, options = {}) {
       ? options.includedTypes
       : ['tourist_attraction'];
 
+  const useWideSearch = radius > PLACES_NEARBY_MAX_RADIUS_METERS;
+  const searchFn = useWideSearch ? searchWideAreaByType : searchNearbyByType;
+  const requestRadius = useWideSearch
+    ? radius
+    : Math.min(radius, PLACES_NEARBY_MAX_RADIUS_METERS);
+
   const results = await Promise.all(
     includedTypes.map((placeType) =>
-      searchNearbyByType(center, placeType, {
+      searchFn(center, placeType, {
         apiKey,
-        radius,
+        radius: requestRadius,
         maxResultCount,
       }).catch((error) => {
-        // Skip unsupported / empty type results without failing the whole search.
-        console.warn(`Nearby search failed for type "${placeType}":`, error?.message);
+        console.warn(
+          `Place search failed for type "${placeType}":`,
+          error?.response?.data?.error?.message || error?.message
+        );
         return [];
       })
     )
@@ -136,7 +236,12 @@ export async function searchNearbyAttractions(center, options = {}) {
   });
 
   return Array.from(byId.values())
-    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .sort((a, b) => {
+      const distanceDiff =
+        haversineDistanceKm(center, a) - haversineDistanceKm(center, b);
+      if (Math.abs(distanceDiff) > 0.05) return distanceDiff;
+      return (b.rating || 0) - (a.rating || 0);
+    })
     .slice(
       0,
       Math.min(40, maxResultCount * Math.max(1, includedTypes.length))

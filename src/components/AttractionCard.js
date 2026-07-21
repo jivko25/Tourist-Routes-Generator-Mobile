@@ -1,7 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { formatCoordinate } from '../utils/googleMaps';
+import {
+  formatDistanceKm,
+  haversineDistanceKm,
+} from '../utils/routeOptimization';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -11,6 +15,7 @@ import { colors, radii, spacing } from '../theme/colors';
 export function AttractionCard({
   attraction,
   cityName,
+  origin = null,
   selected = false,
   onToggle,
   onPressDetails,
@@ -22,6 +27,19 @@ export function AttractionCard({
       ? `${attraction.description.slice(0, 110).trim()}…`
       : attraction.description
     : 'No description available yet. Open details to see more.';
+
+  const distanceLabel = useMemo(() => {
+    if (
+      !origin ||
+      typeof origin.latitude !== 'number' ||
+      typeof origin.longitude !== 'number'
+    ) {
+      return null;
+    }
+
+    const km = haversineDistanceKm(origin, attraction);
+    return formatDistanceKm(km);
+  }, [origin, attraction]);
 
   const handleToggle = () => {
     Animated.sequence([
@@ -68,6 +86,11 @@ export function AttractionCard({
             {cityName ? (
               <Text variant="bodySmall" style={styles.city}>
                 {cityName}
+              </Text>
+            ) : null}
+            {distanceLabel ? (
+              <Text variant="bodyMedium" style={styles.distance}>
+                {distanceLabel} from city center
               </Text>
             ) : null}
             <Text variant="bodyMedium" style={styles.description} numberOfLines={3}>
@@ -151,6 +174,11 @@ const styles = StyleSheet.create({
   },
   city: {
     color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  distance: {
+    color: colors.secondary,
+    fontWeight: '700',
     marginTop: spacing.xs,
   },
   description: {

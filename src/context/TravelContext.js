@@ -13,6 +13,7 @@ import {
 import {
   MAX_SEARCH_RADIUS_METERS,
   MIN_SEARCH_RADIUS_METERS,
+  normalizeTravelMode,
 } from '../utils/config';
 
 const TravelContext = createContext(null);
@@ -126,6 +127,10 @@ export function TravelProvider({ children }) {
             : [...DEFAULT_SETTINGS.selectedCategories];
       }
 
+      if (partial.travelMode != null) {
+        next.travelMode = normalizeTravelMode(partial.travelMode);
+      }
+
       return next;
     });
   }, []);
@@ -144,6 +149,10 @@ export function TravelProvider({ children }) {
     setSelectedAttractions((current) =>
       current.filter((item) => item.id !== attractionId)
     );
+  }, []);
+
+  const reorderSelectedAttractions = useCallback((nextAttractions) => {
+    setSelectedAttractions(Array.isArray(nextAttractions) ? nextAttractions : []);
   }, []);
 
   const clearRoute = useCallback(() => {
@@ -174,6 +183,7 @@ export function TravelProvider({ children }) {
       updateSettings,
       toggleAttraction,
       removeAttraction,
+      reorderSelectedAttractions,
       clearRoute,
       clearSearch,
       isAttractionSelected,
@@ -189,6 +199,7 @@ export function TravelProvider({ children }) {
       updateSettings,
       toggleAttraction,
       removeAttraction,
+      reorderSelectedAttractions,
       clearRoute,
       clearSearch,
       isAttractionSelected,

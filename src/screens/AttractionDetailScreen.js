@@ -8,8 +8,13 @@ import {
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PhotoGallery } from '../components/PhotoGallery';
+import { PlaceMap } from '../components/PlaceMap';
 import { useTravel } from '../context/TravelContext';
 import { formatCoordinate } from '../utils/googleMaps';
+import {
+  formatDistanceKm,
+  haversineDistanceKm,
+} from '../utils/routeOptimization';
 import { colors, radii, spacing } from '../theme/colors';
 
 const GALLERY_WIDTH = Dimensions.get('window').width - spacing.lg * 2;
@@ -20,6 +25,7 @@ export function AttractionDetailScreen({ route, navigation }) {
     attractions,
     selectedAttractions,
     searchedCity,
+    cityCoordinates,
     toggleAttraction,
     isAttractionSelected,
   } = useTravel();
@@ -31,6 +37,21 @@ export function AttractionDetailScreen({ route, navigation }) {
       null
     );
   }, [attractionId, attractions, selectedAttractions]);
+
+  const distanceFromCity = useMemo(() => {
+    if (
+      !attraction ||
+      !cityCoordinates ||
+      typeof cityCoordinates.latitude !== 'number' ||
+      typeof cityCoordinates.longitude !== 'number'
+    ) {
+      return null;
+    }
+
+    return formatDistanceKm(
+      haversineDistanceKm(cityCoordinates, attraction)
+    );
+  }, [attraction, cityCoordinates]);
 
   if (!attraction) {
     return (
@@ -73,6 +94,11 @@ export function AttractionDetailScreen({ route, navigation }) {
           {searchedCity ? (
             <Text style={styles.city}>{searchedCity}</Text>
           ) : null}
+          {distanceFromCity ? (
+            <Text style={styles.distance}>
+              {distanceFromCity} from city center
+            </Text>
+          ) : null}
           <Text style={styles.coords}>
             {formatCoordinate(attraction.latitude)},{' '}
             {formatCoordinate(attraction.longitude)}
@@ -87,6 +113,23 @@ export function AttractionDetailScreen({ route, navigation }) {
             {attraction.description ||
               'No editorial description is available for this place yet.'}
           </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Location
+          </Text>
+          <PlaceMap
+            height={220}
+            points={[
+              {
+                id: attraction.id,
+                name: attraction.name,
+                latitude: attraction.latitude,
+                longitude: attraction.longitude,
+              },
+            ]}
+          />
         </View>
       </ScrollView>
 
@@ -138,6 +181,11 @@ const styles = StyleSheet.create({
   },
   city: {
     color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  distance: {
+    color: colors.secondary,
+    fontWeight: '700',
     marginTop: spacing.xs,
   },
   coords: {
