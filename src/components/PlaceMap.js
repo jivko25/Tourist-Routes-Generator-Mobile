@@ -7,6 +7,7 @@ import {
   getOpenStatusColor,
   OPEN_STATUS,
 } from '../utils/openingHours';
+import { haversineDistanceKm } from '../utils/routeOptimization';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -55,6 +56,93 @@ function getRegionForCoordinates(coordinates) {
 }
 
 /**
+ * @param {{ latitude: number, longitude: number }} from
+ * @param {{ latitude: number, longitude: number }} to
+ * @returns {number} degrees clockwise from north
+ */
+function getBearingDegrees(from, to) {
+  const toRad = (degrees) => (degrees * Math.PI) / 180;
+  const toDeg = (radians) => (radians * 180) / Math.PI;
+  const lat1 = toRad(from.latitude);
+  const lat2 = toRad(to.latitude);
+  const dLon = toRad(to.longitude - from.longitude);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/**
+ * @param {{ latitude: number, longitude: number }} origin
+ * @param {number} bearingDegrees
+ * @param {number} distanceKm
+ */
+function destinationPoint(origin, bearingDegrees, distanceKm) {
+  const earthRadiusKm = 6371;
+  const angularDistance = distanceKm / earthRadiusKm;
+  const bearing = (bearingDegrees * Math.PI) / 180;
+  const lat1 = (origin.latitude * Math.PI) / 180;
+  const lon1 = (origin.longitude * Math.PI) / 180;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+  return {
+    latitude: (lat2 * 180) / Math.PI,
+    longitude: (lon2 * 180) / Math.PI,
+  };
+}
+
+/**
+ * Build chevron polylines that point along each route segment.
+ * Uses native Polylines only (reliable on Android).
+ *
+ * @param {Array<{ latitude: number, longitude: number }>} coordinates
+ */
+function buildDirectionArrows(coordinates) {
+  if (!coordinates || coordinates.length < 2) return [];
+
+  const arrows = [];
+
+  for (let i = 0; i < coordinates.length - 1; i += 1) {
+    const from = coordinates[i];
+    const to = coordinates[i + 1];
+    const segmentKm = haversineDistanceKm(from, to);
+    if (segmentKm < 0.03) continue;
+
+    const bearing = getBearingDegrees(from, to);
+    const tip = {
+      latitude: from.latitude + (to.latitude - from.latitude) * 0.62,
+      longitude: from.longitude + (to.longitude - from.longitude) * 0.62,
+    };
+
+    const wingKm = Math.min(0.18, Math.max(0.04, segmentKm * 0.12));
+    const left = destinationPoint(tip, bearing + 155, wingKm);
+    const right = destinationPoint(tip, bearing - 155, wingKm);
+
+    arrows.push({
+      id: `arrow-${i}-left`,
+      coordinates: [left, tip],
+    });
+    arrows.push({
+      id: `arrow-${i}-right`,
+      coordinates: [right, tip],
+    });
+  }
+
+  return arrows;
+}
+
+/**
  * Native pin colors work reliably on Android (custom marker views often don't).
  * Android supports hue names: green, red, yellow, blue, orange, ...
  *
@@ -78,7 +166,7 @@ function resolvePinColor(point) {
  * Map preview for a single place or a full multi-stop route.
  *
  * @param {{
- *  points?: Array<{ id?: string, name?: string, latitude: number, longitude: number, role?: 'start'|'stop'|'end', openStatus?: 'open'|'closed'|'unknown' }>,
+ *  points?: Array<{ id?: string, name?: string, latitude: number, longitude: number, role?: 'start'|'stop'|'end', openStatus?: 'open'|'closed'|'unknown', isGps?: boolean }>,
  *  showRoute?: boolean,
  *  showOpenLegend?: boolean,
  *  height?: number,
@@ -118,6 +206,11 @@ export function PlaceMap({
     [validPoints]
   );
 
+  const directionArrows = useMemo(
+    () => (showRoute ? buildDirectionArrows(routeCoordinates) : []),
+    [showRoute, routeCoordinates]
+  );
+
   useEffect(() => {
     if (!mapRef.current || validPoints.length < 2) return;
 
@@ -152,11 +245,21 @@ export function PlaceMap({
         rotateEnabled={false}
       >
         {showRoute && routeCoordinates.length > 1 ? (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor={colors.accent}
-            strokeWidth={4}
-          />
+          <>
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor={colors.accent}
+              strokeWidth={4}
+            />
+            {directionArrows.map((arrow) => (
+              <Polyline
+                key={arrow.id}
+                coordinates={arrow.coordinates}
+                strokeColor={colors.primaryDark}
+                strokeWidth={3}
+              />
+            ))}
+          </>
         ) : null}
 
         {validPoints.map((point, index) => {
