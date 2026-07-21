@@ -42,6 +42,7 @@ const TYPE_TEXT_QUERIES = {
   amusement_park: 'amusement parks',
   zoo: 'zoos',
   aquarium: 'aquarium',
+  restaurant: 'restaurants',
 };
 
 /** Niche types rarely need many pages; tourist/museum/park get full pagination. */

@@ -47,6 +47,12 @@ export const PLACE_CATEGORIES = [
     description: 'Amusement parks, zoos, aquariums',
     types: ['amusement_park', 'zoo', 'aquarium'],
   },
+  {
+    id: 'restaurants',
+    label: 'Restaurants',
+    description: 'Restaurants and places to eat',
+    types: ['restaurant'],
+  },
 ];
 
 export const DEFAULT_PLACE_CATEGORY_IDS = ['tourist'];
