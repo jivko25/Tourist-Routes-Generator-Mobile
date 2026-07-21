@@ -8,7 +8,7 @@ import { resolvePlaceTypes } from '../constants/placeCategories';
  * Encapsulates city search + nearby attractions flow.
  */
 export function usePlaces() {
-  const { setSearchResult, settings } = useTravel();
+  const { setSearchResult, settings, clearRoute } = useTravel();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -16,6 +16,8 @@ export function usePlaces() {
     async (cityName, overrides = {}) => {
       setLoading(true);
       setError(null);
+      // New city search always starts a fresh route.
+      clearRoute();
 
       try {
         const categories =
@@ -50,6 +52,7 @@ export function usePlaces() {
     },
     [
       setSearchResult,
+      clearRoute,
       settings.searchRadiusMeters,
       settings.selectedCategories,
     ]

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   ScrollView,
@@ -29,6 +29,7 @@ export function AttractionDetailScreen({ route, navigation }) {
     toggleAttraction,
     isAttractionSelected,
   } = useTravel();
+  const [toggling, setToggling] = useState(false);
 
   const attraction = useMemo(() => {
     return (
@@ -37,6 +38,20 @@ export function AttractionDetailScreen({ route, navigation }) {
       null
     );
   }, [attractionId, attractions, selectedAttractions]);
+
+  const selected = attraction
+    ? isAttractionSelected(attraction.id)
+    : false;
+
+  useEffect(() => {
+    setToggling(false);
+  }, [selected]);
+
+  useEffect(() => {
+    if (!toggling) return undefined;
+    const timeout = setTimeout(() => setToggling(false), 1200);
+    return () => clearTimeout(timeout);
+  }, [toggling]);
 
   const distanceFromCity = useMemo(() => {
     if (
@@ -68,7 +83,11 @@ export function AttractionDetailScreen({ route, navigation }) {
     );
   }
 
-  const selected = isAttractionSelected(attraction.id);
+  const handleToggle = () => {
+    if (toggling) return;
+    setToggling(true);
+    toggleAttraction(attraction);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -136,15 +155,21 @@ export function AttractionDetailScreen({ route, navigation }) {
       <View style={styles.footer}>
         <Button
           mode="contained"
-          onPress={() => toggleAttraction(attraction)}
+          onPress={handleToggle}
+          loading={toggling}
+          disabled={toggling}
           buttonColor={selected ? colors.success : colors.accent}
           textColor="#FFFFFF"
           contentStyle={styles.footerButton}
           style={[styles.footerAction, selected && styles.footerActionSelected]}
           labelStyle={{ fontWeight: '700' }}
-          icon={selected ? 'check-circle' : 'plus'}
+          icon={toggling ? undefined : selected ? 'check-circle' : 'plus'}
         >
-          {selected ? 'Added to route' : 'Add to route'}
+          {toggling
+            ? 'Updating…'
+            : selected
+              ? 'Added to route'
+              : 'Add to route'}
         </Button>
       </View>
     </SafeAreaView>

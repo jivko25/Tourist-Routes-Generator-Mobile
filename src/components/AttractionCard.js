@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   ImageBackground,
@@ -27,6 +27,7 @@ export function AttractionCard({
   onPressDetails,
 }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const [toggling, setToggling] = useState(false);
   const coverPhoto = attraction.photos?.[0]?.url;
 
   const distanceLabel = useMemo(() => {
@@ -41,7 +42,20 @@ export function AttractionCard({
     return formatDistanceKm(haversineDistanceKm(origin, attraction));
   }, [origin, attraction]);
 
+  useEffect(() => {
+    setToggling(false);
+  }, [selected]);
+
+  useEffect(() => {
+    if (!toggling) return undefined;
+    const timeout = setTimeout(() => setToggling(false), 1200);
+    return () => clearTimeout(timeout);
+  }, [toggling]);
+
   const handleToggle = () => {
+    if (toggling) return;
+
+    setToggling(true);
     Animated.sequence([
       Animated.timing(scale, {
         toValue: 0.98,
@@ -133,19 +147,22 @@ export function AttractionCard({
           textColor={colors.primary}
           style={styles.secondaryBtn}
           labelStyle={styles.actionLabel}
+          disabled={toggling}
         >
           Details
         </Button>
         <Button
           mode="contained"
           onPress={handleToggle}
+          loading={toggling}
+          disabled={toggling}
           buttonColor={selected ? colors.success : colors.accent}
           textColor="#FFFFFF"
           style={[styles.primaryBtn, selected && styles.primaryBtnSelected]}
           labelStyle={styles.actionLabel}
-          icon={selected ? 'check-circle' : 'plus'}
+          icon={toggling ? undefined : selected ? 'check-circle' : 'plus'}
         >
-          {selected ? 'Added' : 'Add'}
+          {toggling ? 'Updating…' : selected ? 'Added' : 'Add'}
         </Button>
       </View>
     </Animated.View>
