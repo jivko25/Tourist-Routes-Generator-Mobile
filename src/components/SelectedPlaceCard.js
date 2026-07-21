@@ -6,6 +6,11 @@ import {
   haversineDistanceKm,
 } from '../utils/routeOptimization';
 import { formatPlaceVisitDuration } from '../utils/visitDuration';
+import {
+  formatOpenStatusLabel,
+  getOpenStatus,
+  getOpenStatusColor,
+} from '../utils/openingHours';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -36,6 +41,9 @@ export function SelectedPlaceCard({
     () => formatPlaceVisitDuration(attraction),
     [attraction]
   );
+
+  const openStatus = getOpenStatus(attraction);
+  const openColor = getOpenStatusColor(openStatus);
 
   return (
     <View
@@ -70,6 +78,14 @@ export function SelectedPlaceCard({
           ~{visitLabel}
           {distanceLabel ? ` · ${distanceLabel} from ${originLabel}` : ''}
         </Text>
+        <View
+          style={[styles.openBadge, { backgroundColor: `${openColor}22` }]}
+        >
+          <View style={[styles.openDot, { backgroundColor: openColor }]} />
+          <Text style={[styles.openText, { color: openColor }]}>
+            {formatOpenStatusLabel(openStatus)}
+          </Text>
+        </View>
       </View>
       <IconButton
         icon="close"
@@ -161,6 +177,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
     fontSize: 12,
+  },
+  openBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.sm,
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  openDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  openText: {
+    fontWeight: '800',
+    fontSize: 11,
   },
   close: {
     backgroundColor: '#FFFFFF',

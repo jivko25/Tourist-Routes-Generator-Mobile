@@ -2,6 +2,11 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import {
+  formatOpenStatusLabel,
+  getOpenStatusColor,
+  OPEN_STATUS,
+} from '../utils/openingHours';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -50,15 +55,38 @@ function getRegionForCoordinates(coordinates) {
 }
 
 /**
+ * Native pin colors work reliably on Android (custom marker views often don't).
+ * Android supports hue names: green, red, yellow, blue, orange, ...
+ *
+ * @param {{ openStatus?: string, role?: string }} point
+ * @returns {string}
+ */
+function resolvePinColor(point) {
+  if (point.openStatus === OPEN_STATUS.open) return 'green';
+  if (point.openStatus === OPEN_STATUS.closed) return 'red';
+  if (point.openStatus === OPEN_STATUS.unknown) return 'yellow';
+
+  if (point.role === 'start') return 'blue';
+  if (point.role === 'end') return 'orange';
+  return 'blue';
+}
+
+/**
  * Map preview for a single place or a full multi-stop route.
  *
  * @param {{
- *  points?: Array<{ id?: string, name?: string, latitude: number, longitude: number, role?: 'start'|'stop'|'end' }>,
+ *  points?: Array<{ id?: string, name?: string, latitude: number, longitude: number, role?: 'start'|'stop'|'end', openStatus?: 'open'|'closed'|'unknown' }>,
  *  showRoute?: boolean,
+ *  showOpenLegend?: boolean,
  *  height?: number,
  * }} props
  */
-export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
+export function PlaceMap({
+  points = [],
+  showRoute = false,
+  showOpenLegend = false,
+  height = 220,
+}) {
   const mapRef = useRef(null);
 
   const validPoints = useMemo(
@@ -66,7 +94,9 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
       points.filter(
         (point) =>
           typeof point?.latitude === 'number' &&
-          typeof point?.longitude === 'number'
+          typeof point?.longitude === 'number' &&
+          Number.isFinite(point.latitude) &&
+          Number.isFinite(point.longitude)
       ),
     [points]
   );
@@ -90,7 +120,7 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
 
     const timeout = setTimeout(() => {
       mapRef.current?.fitToCoordinates(routeCoordinates, {
-        edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
+        edgePadding: { top: 48, right: 48, bottom: 56, left: 48 },
         animated: true,
       });
     }, 250);
@@ -127,12 +157,13 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
         ) : null}
 
         {validPoints.map((point, index) => {
-          const pinColor =
-            point.role === 'start'
-              ? colors.primary
+          const statusLabel = point.openStatus
+            ? formatOpenStatusLabel(point.openStatus)
+            : point.role === 'start'
+              ? 'Start'
               : point.role === 'end'
-                ? colors.accent
-                : colors.primaryDark;
+                ? 'End'
+                : undefined;
 
           return (
             <Marker
@@ -142,18 +173,44 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
                 longitude: point.longitude,
               }}
               title={point.name || `Stop ${index + 1}`}
-              description={
-                point.role === 'start'
-                  ? 'Start'
-                  : point.role === 'end'
-                    ? 'End'
-                    : undefined
-              }
-              pinColor={pinColor}
+              description={statusLabel}
+              pinColor={resolvePinColor(point)}
             />
           );
         })}
       </MapView>
+
+      {showOpenLegend ? (
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: getOpenStatusColor(OPEN_STATUS.open) },
+              ]}
+            />
+            <Text style={styles.legendText}>Open</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: getOpenStatusColor(OPEN_STATUS.unknown) },
+              ]}
+            />
+            <Text style={styles.legendText}>Unknown</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: getOpenStatusColor(OPEN_STATUS.closed) },
+              ]}
+            />
+            <Text style={styles.legendText}>Closed</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -165,6 +222,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceMuted,
+  },
+  legend: {
+    position: 'absolute',
+    left: spacing.sm,
+    right: spacing.sm,
+    bottom: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '700',
   },
   empty: {
     alignItems: 'center',

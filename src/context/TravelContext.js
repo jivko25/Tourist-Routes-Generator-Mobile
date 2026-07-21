@@ -167,6 +167,15 @@ export function TravelProvider({ children }) {
     setSelectedAttractions(Array.isArray(nextAttractions) ? nextAttractions : []);
   }, []);
 
+  const patchSelectedAttraction = useCallback((attractionId, partial) => {
+    if (!attractionId || !partial || typeof partial !== 'object') return;
+    setSelectedAttractions((current) =>
+      current.map((item) =>
+        item.id === attractionId ? { ...item, ...partial } : item
+      )
+    );
+  }, []);
+
   const clearRoute = useCallback(() => {
     setSelectedAttractions([]);
   }, []);
@@ -250,6 +259,7 @@ export function TravelProvider({ children }) {
       toggleAttraction,
       removeAttraction,
       reorderSelectedAttractions,
+      patchSelectedAttraction,
       clearRoute,
       clearSearch,
       isAttractionSelected,
@@ -270,6 +280,7 @@ export function TravelProvider({ children }) {
       toggleAttraction,
       removeAttraction,
       reorderSelectedAttractions,
+      patchSelectedAttraction,
       clearRoute,
       clearSearch,
       isAttractionSelected,

@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PhotoGallery } from '../components/PhotoGallery';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlacePricingCard } from '../components/PlacePricingCard';
+import { OpeningHoursSection } from '../components/OpeningHoursSection';
 import { ReviewsList } from '../components/ReviewsList';
 import { useTravel } from '../context/TravelContext';
 import { fetchPlaceDetails } from '../services/placesService';
@@ -62,6 +63,13 @@ export function AttractionDetailScreen({ route, navigation }) {
       reviews: details.reviews?.length
         ? details.reviews
         : baseAttraction.reviews || [],
+      weekdayDescriptions: details.weekdayDescriptions?.length
+        ? details.weekdayDescriptions
+        : baseAttraction.weekdayDescriptions || [],
+      openNow:
+        typeof details.openNow === 'boolean'
+          ? details.openNow
+          : baseAttraction.openNow,
     };
   }, [baseAttraction, details]);
 
@@ -208,6 +216,13 @@ export function AttractionDetailScreen({ route, navigation }) {
             <PlacePricingCard place={attraction} loading={detailsLoading} />
           </View>
         ) : null}
+
+        <View style={styles.section}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Opening hours
+          </Text>
+          <OpeningHoursSection place={attraction} loading={detailsLoading} />
+        </View>
 
         <View style={styles.section}>
           <Text variant="titleMedium" style={styles.sectionTitle}>

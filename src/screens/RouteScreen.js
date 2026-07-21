@@ -14,6 +14,7 @@ import { useTravel } from '../context/TravelContext';
 import { geocodeCity } from '../services/geocodingService';
 import { openGoogleMapsRoute } from '../services/mapsService';
 import { fetchRouteTravelEstimate } from '../services/directionsService';
+import { fetchPlaceDetails } from '../services/placesService';
 import {
   formatDistanceKm,
   optimizeAttractionOrder,
@@ -22,6 +23,7 @@ import {
   buildRoutePathPoints,
   estimateRouteTiming,
 } from '../utils/visitDuration';
+import { getOpenStatus } from '../utils/openingHours';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -36,6 +38,7 @@ export function RouteScreen({ navigation }) {
     attractions,
     searchedCity,
     saveCurrentRoute,
+    patchSelectedAttraction,
   } = useTravel();
   const [opening, setOpening] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
@@ -49,6 +52,8 @@ export function RouteScreen({ navigation }) {
   const [travelLoading, setTravelLoading] = useState(false);
   const [travelError, setTravelError] = useState(null);
   const listOpacity = useRef(new Animated.Value(0)).current;
+  const fetchedHoursIdsRef = useRef(new Set());
+
 
   const startAddress = settings.startAddress?.trim() || '';
   const endAddress = settings.endAddress?.trim() || '';
@@ -118,14 +123,81 @@ export function RouteScreen({ navigation }) {
       latitude: attraction.latitude,
       longitude: attraction.longitude,
       role: 'stop',
+      openStatus: getOpenStatus(attraction),
     }));
 
     return [
-      ...(startPoint ? [startPoint] : []),
+      ...(startPoint
+        ? [{ ...startPoint, openStatus: 'unknown' }]
+        : []),
       ...stops,
-      ...(endPoint ? [endPoint] : []),
+      ...(endPoint ? [{ ...endPoint, openStatus: 'unknown' }] : []),
     ];
   }, [selectedAttractions, startPoint, endPoint]);
+
+  useEffect(() => {
+    if (selectedAttractions.length === 0) {
+      fetchedHoursIdsRef.current.clear();
+      return undefined;
+    }
+
+    const selectedIds = new Set(selectedAttractions.map((item) => item.id));
+    fetchedHoursIdsRef.current.forEach((id) => {
+      if (!selectedIds.has(id)) fetchedHoursIdsRef.current.delete(id);
+    });
+
+    const pending = selectedAttractions.filter((item) => {
+      if (fetchedHoursIdsRef.current.has(item.id)) return false;
+      return !(
+        Array.isArray(item.weekdayDescriptions) &&
+        item.weekdayDescriptions.length > 0
+      );
+    });
+
+    if (pending.length === 0) return undefined;
+
+    let cancelled = false;
+    pending.forEach((item) => fetchedHoursIdsRef.current.add(item.id));
+
+    async function enrichOpeningHours() {
+      const results = await Promise.allSettled(
+        pending.map(async (item) => {
+          const placeId = item.googlePlaceId || item.id;
+          const details = await fetchPlaceDetails(placeId);
+          return {
+            id: item.id,
+            openNow: details.openNow,
+            weekdayDescriptions: details.weekdayDescriptions,
+          };
+        })
+      );
+
+      if (cancelled) return;
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          fetchedHoursIdsRef.current.delete(pending[index].id);
+          return;
+        }
+
+        patchSelectedAttraction(result.value.id, {
+          openNow: result.value.openNow,
+          weekdayDescriptions: result.value.weekdayDescriptions,
+        });
+      });
+    }
+
+    enrichOpeningHours();
+
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally keyed by stop ids so hours enrich once per selection set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedAttractions.map((item) => item.id).join('|'),
+    patchSelectedAttraction,
+  ]);
 
   useEffect(() => {
     if (selectedAttractions.length === 0) {
@@ -343,7 +415,12 @@ export function RouteScreen({ navigation }) {
 
         {selectedAttractions.length > 0 ? (
           <View style={styles.mapSection}>
-            <PlaceMap points={mapPoints} showRoute height={260} />
+            <PlaceMap
+              points={mapPoints}
+              showRoute
+              showOpenLegend
+              height={280}
+            />
             {routeStats ? (
               <Text style={styles.distanceText}>
                 Approx. distance: {formatDistanceKm(routeStats.currentDistanceKm)}

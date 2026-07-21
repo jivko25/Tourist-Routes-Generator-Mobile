@@ -56,6 +56,8 @@
  * @property {string|null} websiteUri
  * @property {string|null} googleMapsUri
  * @property {{ placeUri?: string|null, reviewsUri?: string|null, photosUri?: string|null, directionsUri?: string|null }|null} googleMapsLinks
+ * @property {boolean|null} openNow
+ * @property {string[]} weekdayDescriptions
  */
 
 /**
@@ -95,5 +97,9 @@ export function createAttraction(data) {
     websiteUri: data.websiteUri || null,
     googleMapsUri: data.googleMapsUri || null,
     googleMapsLinks: data.googleMapsLinks || null,
+    openNow: typeof data.openNow === 'boolean' ? data.openNow : null,
+    weekdayDescriptions: Array.isArray(data.weekdayDescriptions)
+      ? data.weekdayDescriptions
+      : [],
   };
 }

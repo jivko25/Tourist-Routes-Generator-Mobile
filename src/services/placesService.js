@@ -13,6 +13,7 @@ import { mapPlacePhotos } from '../utils/placePhotos';
 import { haversineDistanceKm } from '../utils/routeOptimization';
 import { getPopularityScore } from '../utils/attractionSort';
 import { mapPriceRange } from '../utils/placePricing';
+import { mapOpeningHoursFromPlace } from '../utils/openingHours';
 
 const PLACE_FIELD_MASK = [
   'places.displayName',
@@ -24,6 +25,7 @@ const PLACE_FIELD_MASK = [
   'places.primaryTypeDisplayName',
   'places.rating',
   'places.userRatingCount',
+  'places.currentOpeningHours',
   'nextPageToken',
 ].join(',');
 
@@ -43,6 +45,8 @@ const PLACE_DETAILS_FIELD_MASK = [
   'websiteUri',
   'googleMapsUri',
   'googleMapsLinks',
+  'currentOpeningHours',
+  'regularOpeningHours',
 ].join(',');
 
 const TYPE_TEXT_QUERIES = {
@@ -150,6 +154,8 @@ function mapPlaceToAttraction(place, placeType = '') {
     return null;
   }
 
+  const hours = mapOpeningHoursFromPlace(place);
+
   return createAttraction({
     id: place.id,
     googlePlaceId: place.id,
@@ -177,6 +183,8 @@ function mapPlaceToAttraction(place, placeType = '') {
           directionsUri: place.googleMapsLinks.directionsUri || null,
         }
       : null,
+    openNow: hours.openNow,
+    weekdayDescriptions: hours.weekdayDescriptions,
   });
 }
 
