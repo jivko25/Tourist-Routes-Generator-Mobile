@@ -29,6 +29,7 @@ GOOGLE_PLACES_API_KEY=your_key_here
 
 - Geocoding API
 - Places API (New)
+- Routes API (for accurate travel-time estimates on Your Route)
 
 4. Start the app:
 

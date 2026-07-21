@@ -5,6 +5,7 @@ import {
   formatDistanceKm,
   haversineDistanceKm,
 } from '../utils/routeOptimization';
+import { formatPlaceVisitDuration } from '../utils/visitDuration';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -29,6 +30,11 @@ export function SelectedPlaceCard({
     return formatDistanceKm(haversineDistanceKm(origin, attraction));
   }, [origin, attraction]);
 
+  const visitLabel = useMemo(
+    () => formatPlaceVisitDuration(attraction),
+    [attraction]
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.indexBadge}>
@@ -38,11 +44,10 @@ export function SelectedPlaceCard({
         <Text style={styles.name} numberOfLines={2}>
           {attraction.name}
         </Text>
-        {distanceLabel ? (
-          <Text style={styles.distance}>
-            {distanceLabel} from {originLabel}
-          </Text>
-        ) : null}
+        <Text style={styles.meta}>
+          ~{visitLabel}
+          {distanceLabel ? ` · ${distanceLabel} from ${originLabel}` : ''}
+        </Text>
       </View>
       <IconButton
         icon="close"
@@ -91,7 +96,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-  distance: {
+  meta: {
     color: colors.successDark,
     fontWeight: '600',
     marginTop: 2,

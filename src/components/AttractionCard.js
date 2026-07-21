@@ -13,6 +13,7 @@ import {
   formatDistanceKm,
   haversineDistanceKm,
 } from '../utils/routeOptimization';
+import { formatPlaceVisitDuration } from '../utils/visitDuration';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -41,6 +42,11 @@ export function AttractionCard({
 
     return formatDistanceKm(haversineDistanceKm(origin, attraction));
   }, [origin, attraction]);
+
+  const visitLabel = useMemo(
+    () => formatPlaceVisitDuration(attraction),
+    [attraction]
+  );
 
   useEffect(() => {
     setToggling(false);
@@ -108,6 +114,11 @@ export function AttractionCard({
                   </Text>
                 </View>
               ) : null}
+              <View style={[styles.pill, styles.pillOrange]}>
+                <Text style={[styles.pillText, styles.pillOrangeText]}>
+                  ~{visitLabel}
+                </Text>
+              </View>
             </View>
 
             {selected ? (
@@ -228,6 +239,12 @@ const styles = StyleSheet.create({
   },
   pillBlueText: {
     color: colors.primaryDark,
+  },
+  pillOrange: {
+    backgroundColor: colors.accentSoft,
+  },
+  pillOrangeText: {
+    color: colors.accent,
   },
   selectedBadge: {
     backgroundColor: colors.success,

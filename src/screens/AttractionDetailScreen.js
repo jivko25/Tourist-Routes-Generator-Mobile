@@ -19,7 +19,10 @@ import {
   formatDistanceKm,
   haversineDistanceKm,
 } from '../utils/routeOptimization';
-import { getPricingDisplay, isFoodPlace, isTicketedPlace } from '../utils/placePricing';
+import { isFoodPlace, isTicketedPlace, getPricingDisplay } from '../utils/placePricing';
+import {
+  formatPlaceVisitDuration,
+} from '../utils/visitDuration';
 import { colors, radii, spacing } from '../theme/colors';
 
 const GALLERY_WIDTH = Dimensions.get('window').width - spacing.lg * 2;
@@ -188,6 +191,9 @@ export function AttractionDetailScreen({ route, navigation }) {
               {distanceFromCity} from city center
             </Text>
           ) : null}
+          <Text style={styles.visitDuration}>
+            Suggested visit: ~{formatPlaceVisitDuration(attraction)}
+          </Text>
           <Text style={styles.coords}>
             {formatCoordinate(attraction.latitude)},{' '}
             {formatCoordinate(attraction.longitude)}
@@ -324,6 +330,11 @@ const styles = StyleSheet.create({
   },
   distance: {
     color: colors.accent,
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  visitDuration: {
+    color: colors.primaryDark,
     fontWeight: '700',
     marginTop: spacing.xs,
   },

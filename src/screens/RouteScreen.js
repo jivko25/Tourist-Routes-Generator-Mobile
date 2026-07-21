@@ -13,10 +13,15 @@ import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
 import { useTravel } from '../context/TravelContext';
 import { geocodeCity } from '../services/geocodingService';
 import { openGoogleMapsRoute } from '../services/mapsService';
+import { fetchRouteTravelEstimate } from '../services/directionsService';
 import {
   formatDistanceKm,
   optimizeAttractionOrder,
 } from '../utils/routeOptimization';
+import {
+  buildRoutePathPoints,
+  estimateRouteTiming,
+} from '../utils/visitDuration';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -40,6 +45,9 @@ export function RouteScreen({ navigation }) {
   const [startPoint, setStartPoint] = useState(null);
   const [endPoint, setEndPoint] = useState(null);
   const [routeStats, setRouteStats] = useState(null);
+  const [liveTravelMinutes, setLiveTravelMinutes] = useState(null);
+  const [travelLoading, setTravelLoading] = useState(false);
+  const [travelError, setTravelError] = useState(null);
   const listOpacity = useRef(new Animated.Value(0)).current;
 
   const startAddress = settings.startAddress?.trim() || '';
@@ -140,6 +148,57 @@ export function RouteScreen({ navigation }) {
     });
   }, [selectedAttractions, startPoint, endPoint]);
 
+  useEffect(() => {
+    const pathPoints = buildRoutePathPoints({
+      attractions: selectedAttractions,
+      start: startPoint,
+      end: endPoint,
+    });
+
+    if (pathPoints.length < 2) {
+      setLiveTravelMinutes(null);
+      setTravelLoading(false);
+      setTravelError(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setTravelLoading(true);
+      setTravelError(null);
+      try {
+        const estimate = await fetchRouteTravelEstimate({
+          points: pathPoints,
+          travelMode: settings.travelMode,
+        });
+        if (!cancelled) {
+          setLiveTravelMinutes(estimate.travelMinutes);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLiveTravelMinutes(null);
+          setTravelError(
+            error?.response?.data?.error?.message ||
+              error?.message ||
+              'Could not load Google travel time.'
+          );
+        }
+      } finally {
+        if (!cancelled) setTravelLoading(false);
+      }
+    }, 450);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    selectedAttractions,
+    startPoint,
+    endPoint,
+    settings.travelMode,
+  ]);
+
   const handleOptimizeRoute = () => {
     if (!routeStats?.optimizedOrder?.length) return;
 
@@ -212,6 +271,23 @@ export function RouteScreen({ navigation }) {
   const canGenerate = selectedAttractions.length > 0;
   const canAddMorePlaces =
     Boolean(cityCoordinates) || attractions.length > 0;
+  const routeTiming = useMemo(
+    () =>
+      estimateRouteTiming({
+        attractions: selectedAttractions,
+        start: startPoint,
+        end: endPoint,
+        travelMode: settings.travelMode,
+        travelMinutesOverride: liveTravelMinutes,
+      }),
+    [
+      selectedAttractions,
+      startPoint,
+      endPoint,
+      settings.travelMode,
+      liveTravelMinutes,
+    ]
+  );
 
   const handleAddMorePlaces = () => {
     if (canAddMorePlaces) {
@@ -264,6 +340,32 @@ export function RouteScreen({ navigation }) {
                     )})`
                   : ' · Order looks optimal'}
               </Text>
+            ) : null}
+            {selectedAttractions.length > 0 ? (
+              <View style={styles.timingBox}>
+                <Text style={styles.timingTitle}>Estimated schedule</Text>
+                <Text style={styles.timingRow}>
+                  At places: ~{routeTiming.visitLabel}
+                </Text>
+                <Text style={styles.timingRow}>
+                  Travel ({formatTravelModeLabel(settings.travelMode)}): ~
+                  {travelLoading && !routeTiming.travelIsLive
+                    ? '…'
+                    : routeTiming.travelLabel}
+                  {routeTiming.travelIsLive ? ' · Google' : ''}
+                </Text>
+                <Text style={styles.timingTotal}>
+                  Total route: ~
+                  {travelLoading && !routeTiming.travelIsLive
+                    ? '…'
+                    : routeTiming.totalLabel}
+                </Text>
+                {travelError && !routeTiming.travelIsLive ? (
+                  <Text style={styles.timingHint}>
+                    Using approximate travel time ({travelError})
+                  </Text>
+                ) : null}
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -460,6 +562,36 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  timingBox: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: 4,
+  },
+  timingTitle: {
+    color: colors.text,
+    fontWeight: '800',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  timingRow: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  timingTotal: {
+    color: colors.accent,
+    fontWeight: '800',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  timingHint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
   },
   endpoints: {
     backgroundColor: colors.surface,

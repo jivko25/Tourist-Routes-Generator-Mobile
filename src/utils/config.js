@@ -17,6 +17,7 @@ export function getGooglePlacesApiKey() {
 }
 
 export const PLACES_API_BASE_URL = 'https://places.googleapis.com/v1';
+export const ROUTES_API_BASE_URL = 'https://routes.googleapis.com';
 export const GEOCODING_API_BASE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 export const DEFAULT_SEARCH_RADIUS_METERS = 10000;
 export const MIN_SEARCH_RADIUS_METERS = 500;
