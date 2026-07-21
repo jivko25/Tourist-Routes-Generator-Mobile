@@ -133,17 +133,22 @@ export function RouteScreen({ navigation }) {
       return;
     }
 
+    // Free open-path optimize (same undirected length either way).
+    // Optional Settings addresses still act as fixed outer endpoints.
     const result = optimizeAttractionOrder(selectedAttractions, {
       start: startPoint,
       end: endPoint,
     });
 
+    const improves =
+      result.distanceKm + 1e-6 < result.originalDistanceKm &&
+      result.ordered.map((item) => item.id).join('|') !==
+        selectedAttractions.map((item) => item.id).join('|');
+
     setRouteStats({
       currentDistanceKm: result.originalDistanceKm,
       optimizedDistanceKm: result.distanceKm,
-      canImprove:
-        result.ordered.map((item) => item.id).join('|') !==
-        selectedAttractions.map((item) => item.id).join('|'),
+      canImprove: improves,
       optimizedOrder: result.ordered,
     });
   }, [selectedAttractions, startPoint, endPoint]);
@@ -210,6 +215,11 @@ export function RouteScreen({ navigation }) {
     }
   };
 
+  const handleReverseRoute = () => {
+    if (selectedAttractions.length < 2) return;
+    reorderSelectedAttractions([...selectedAttractions].reverse());
+  };
+
   const handleGenerateRoute = async () => {
     setOpening(true);
     try {
@@ -266,11 +276,20 @@ export function RouteScreen({ navigation }) {
     }
   };
 
-  const distanceOrigin = startPoint || cityCoordinates || null;
-  const distanceOriginLabel = startPoint ? 'start' : 'city center';
+  const distanceOrigin = startPoint || selectedAttractions[0] || cityCoordinates || null;
+  const distanceOriginLabel = startPoint
+    ? 'start'
+    : selectedAttractions[0]
+      ? 'start stop'
+      : 'city center';
   const canGenerate = selectedAttractions.length > 0;
   const canAddMorePlaces =
     Boolean(cityCoordinates) || attractions.length > 0;
+  const firstStop = selectedAttractions[0] || null;
+  const lastStop =
+    selectedAttractions.length > 0
+      ? selectedAttractions[selectedAttractions.length - 1]
+      : null;
   const routeTiming = useMemo(
     () =>
       estimateRouteTiming({
@@ -371,21 +390,27 @@ export function RouteScreen({ navigation }) {
         ) : null}
 
         <View style={styles.endpoints}>
-          <Text style={styles.endpointLabel}>Start</Text>
+          <Text style={styles.endpointLabel}>Start stop</Text>
           <Text style={styles.endpointValue}>
-            {startAddress || 'First selected attraction'}
+            {startAddress
+              ? startAddress
+              : firstStop?.name || 'Pick a stop below'}
           </Text>
           <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
-            End
+            End stop
           </Text>
           <Text style={styles.endpointValue}>
-            {endAddress || 'Last selected attraction'}
+            {endAddress ? endAddress : lastStop?.name || 'Pick a stop below'}
           </Text>
           <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
             Transport
           </Text>
           <Text style={styles.endpointValue}>
             {formatTravelModeLabel(settings.travelMode)}
+          </Text>
+          <Text style={styles.endpointHint}>
+            First and last stops follow the list order. Use Reverse route to
+            flip the path. Optional hotel addresses still come from Settings.
           </Text>
           <Button
             mode="text"
@@ -394,7 +419,7 @@ export function RouteScreen({ navigation }) {
             textColor={colors.primary}
             style={styles.editSettings}
           >
-            Edit in Settings
+            Edit addresses in Settings
           </Button>
         </View>
 
@@ -418,16 +443,33 @@ export function RouteScreen({ navigation }) {
               </Button>
             </View>
           ) : (
-            selectedAttractions.map((attraction, index) => (
-              <SelectedPlaceCard
-                key={attraction.id}
-                attraction={attraction}
-                index={index + 1}
-                origin={distanceOrigin}
-                originLabel={distanceOriginLabel}
-                onRemove={removeAttraction}
-              />
-            ))
+            <>
+              <View style={styles.listToolbar}>
+                <Button
+                  mode="outlined"
+                  compact
+                  icon="swap-vertical"
+                  onPress={handleReverseRoute}
+                  disabled={selectedAttractions.length < 2}
+                  textColor={colors.primaryDark}
+                  style={styles.reverseBtn}
+                >
+                  Reverse route
+                </Button>
+              </View>
+              {selectedAttractions.map((attraction, index) => (
+                <SelectedPlaceCard
+                  key={attraction.id}
+                  attraction={attraction}
+                  index={index + 1}
+                  isStart={index === 0}
+                  isEnd={index === selectedAttractions.length - 1}
+                  origin={distanceOrigin}
+                  originLabel={distanceOriginLabel}
+                  onRemove={removeAttraction}
+                />
+              ))}
+            </>
           )}
         </Animated.View>
       </ScrollView>
@@ -616,6 +658,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 20,
     fontWeight: '600',
+  },
+  endpointHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: spacing.sm,
+  },
+  listToolbar: {
+    marginBottom: spacing.sm,
+  },
+  reverseBtn: {
+    borderRadius: radii.pill,
+    borderColor: colors.primary,
+    alignSelf: 'flex-start',
   },
   editSettings: {
     alignSelf: 'flex-start',

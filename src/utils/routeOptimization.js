@@ -4,6 +4,7 @@
  */
 
 const EARTH_RADIUS_KM = 6371;
+const EPS_KM = 1e-6;
 
 /**
  * @param {{ latitude: number, longitude: number }} a
@@ -53,6 +54,14 @@ function buildFullPath(waypoints, options = {}) {
 }
 
 /**
+ * @param {Array<{ latitude: number, longitude: number }>} waypoints
+ * @param {{ start?: object | null, end?: object | null }} options
+ */
+function pathDistanceKm(waypoints, options = {}) {
+  return totalPathDistanceKm(buildFullPath(waypoints, options));
+}
+
+/**
  * Nearest-neighbor order for open path.
  *
  * @template {{ latitude: number, longitude: number, id?: string }} T
@@ -82,7 +91,6 @@ export function nearestNeighborOrder(waypoints, options = {}) {
 
     remaining.forEach((candidate, index) => {
       let score = haversineDistanceKm(current, candidate);
-      // Soft pull toward the fixed end so the last stops stay closer to it.
       if (end) {
         score += haversineDistanceKm(candidate, end) * 0.2;
       }
@@ -108,25 +116,36 @@ export function nearestNeighborOrder(waypoints, options = {}) {
  * @returns {T[]}
  */
 export function twoOptImprove(path, options = {}) {
-  if (!path || path.length < 4) return path ? [...path] : [];
+  if (!path || path.length < 2) return path ? [...path] : [];
 
-  const score = (waypoints) =>
-    totalPathDistanceKm(buildFullPath(waypoints, options));
+  const score = (waypoints) => pathDistanceKm(waypoints, options);
 
   let best = [...path];
   let improved = true;
 
   while (improved) {
     improved = false;
-    for (let i = 0; i < best.length - 2; i += 1) {
-      for (let k = i + 1; k < best.length - 1; k += 1) {
+
+    // Try full reverse for open paths (same undirected length only without fixed ends,
+    // but with fixed ends reverse of middle can differ — still worth checking via seeds).
+    if (best.length >= 2) {
+      const reversed = [...best].reverse();
+      if (score(reversed) + EPS_KM < score(best)) {
+        best = reversed;
+        improved = true;
+        continue;
+      }
+    }
+
+    for (let i = 0; i < best.length - 1; i += 1) {
+      for (let k = i + 1; k < best.length; k += 1) {
         const candidate = [
           ...best.slice(0, i),
           ...best.slice(i, k + 1).reverse(),
           ...best.slice(k + 1),
         ];
 
-        if (score(candidate) + 1e-9 < score(best)) {
+        if (score(candidate) + EPS_KM < score(best)) {
           best = candidate;
           improved = true;
         }
@@ -138,7 +157,35 @@ export function twoOptImprove(path, options = {}) {
 }
 
 /**
+ * Pick the shortest candidate; never worse than the original order.
+ *
+ * @template {{ latitude: number, longitude: number, id?: string }} T
+ * @param {T[][]} candidates
+ * @param {T[]} original
+ * @param {{ start?: object | null, end?: object | null }} pathOptions
+ */
+function pickBestOrder(candidates, original, pathOptions) {
+  let best = [...original];
+  let bestDist = pathDistanceKm(best, pathOptions);
+
+  candidates.forEach((candidate) => {
+    if (!Array.isArray(candidate) || candidate.length !== original.length) {
+      return;
+    }
+    const dist = pathDistanceKm(candidate, pathOptions);
+    if (dist + EPS_KM < bestDist) {
+      best = candidate;
+      bestDist = dist;
+    }
+  });
+
+  return { ordered: best, distanceKm: bestDist };
+}
+
+/**
  * Optimizes attraction order between optional fixed start/end coordinates.
+ * Tries several seeds (current, reverse, NN both ways) + 2-opt, keeps the best.
+ * Never returns an order longer than the current one.
  *
  * @template {{ latitude: number, longitude: number, id?: string }} T
  * @param {T[]} attractions
@@ -150,10 +197,7 @@ export function optimizeAttractionOrder(attractions, options = {}) {
   const start = options.start || null;
   const end = options.end || null;
   const pathOptions = { start, end };
-
-  const originalDistanceKm = totalPathDistanceKm(
-    buildFullPath(original, pathOptions)
-  );
+  const originalDistanceKm = pathDistanceKm(original, pathOptions);
 
   if (original.length <= 1) {
     return {
@@ -163,12 +207,36 @@ export function optimizeAttractionOrder(attractions, options = {}) {
     };
   }
 
-  let ordered = nearestNeighborOrder(original, pathOptions);
-  ordered = twoOptImprove(ordered, pathOptions);
+  const seeds = [
+    [...original],
+    [...original].reverse(),
+    nearestNeighborOrder(original, pathOptions),
+  ];
+
+  // Approach from the opposite end, then reverse so fixed start/end stay correct.
+  if (start && end) {
+    const fromEnd = nearestNeighborOrder(original, {
+      start: end,
+      end: start,
+    });
+    seeds.push([...fromEnd].reverse());
+  } else if (!start) {
+    const byLat = [...original].sort((a, b) => a.latitude - b.latitude);
+    seeds.push(nearestNeighborOrder(byLat, { end }));
+    const byLonDesc = [...original].sort((a, b) => b.longitude - a.longitude);
+    seeds.push(nearestNeighborOrder(byLonDesc, { end }));
+  }
+
+  const improved = seeds.map((seed) => twoOptImprove(seed, pathOptions));
+  const { ordered, distanceKm } = pickBestOrder(
+    improved,
+    original,
+    pathOptions
+  );
 
   return {
     ordered,
-    distanceKm: totalPathDistanceKm(buildFullPath(ordered, pathOptions)),
+    distanceKm,
     originalDistanceKm,
   };
 }

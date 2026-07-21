@@ -14,6 +14,8 @@ import { colors, radii, spacing } from '../theme/colors';
 export function SelectedPlaceCard({
   attraction,
   index,
+  isStart = false,
+  isEnd = false,
   origin = null,
   originLabel = 'start',
   onRemove,
@@ -36,14 +38,34 @@ export function SelectedPlaceCard({
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.indexBadge}>
+    <View
+      style={[
+        styles.container,
+        isStart && styles.containerStart,
+        isEnd && !isStart && styles.containerEnd,
+      ]}
+    >
+      <View
+        style={[
+          styles.indexBadge,
+          isStart && styles.indexStart,
+          isEnd && !isStart && styles.indexEnd,
+        ]}
+      >
         <Text style={styles.indexText}>{index}</Text>
       </View>
       <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>
-          {attraction.name}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.name} numberOfLines={2}>
+            {attraction.name}
+          </Text>
+          {isStart ? (
+            <Text style={[styles.roleBadge, styles.roleStart]}>START</Text>
+          ) : null}
+          {isEnd ? (
+            <Text style={[styles.roleBadge, styles.roleEnd]}>END</Text>
+          ) : null}
+        </View>
         <Text style={styles.meta}>
           ~{visitLabel}
           {distanceLabel ? ` · ${distanceLabel} from ${originLabel}` : ''}
@@ -74,6 +96,14 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xs,
     marginBottom: spacing.sm,
   },
+  containerStart: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  containerEnd: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
   indexBadge: {
     width: 30,
     height: 30,
@@ -83,6 +113,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
+  indexStart: {
+    backgroundColor: colors.primary,
+  },
+  indexEnd: {
+    backgroundColor: colors.accent,
+  },
   indexText: {
     color: '#FFFFFF',
     fontWeight: '700',
@@ -91,10 +127,34 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   name: {
     color: colors.text,
     fontWeight: '700',
     fontSize: 15,
+    flexShrink: 1,
+  },
+  roleBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    overflow: 'hidden',
+    borderRadius: radii.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  roleStart: {
+    color: colors.primaryDark,
+    backgroundColor: '#FFFFFF',
+  },
+  roleEnd: {
+    color: colors.accent,
+    backgroundColor: '#FFFFFF',
   },
   meta: {
     color: colors.successDark,
