@@ -55,6 +55,7 @@
  * @property {AttractionReview[]} reviews
  * @property {string|null} websiteUri
  * @property {string|null} googleMapsUri
+ * @property {{ placeUri?: string|null, reviewsUri?: string|null, photosUri?: string|null, directionsUri?: string|null }|null} googleMapsLinks
  */
 
 /**
@@ -93,5 +94,6 @@ export function createAttraction(data) {
     reviews: Array.isArray(data.reviews) ? data.reviews : [],
     websiteUri: data.websiteUri || null,
     googleMapsUri: data.googleMapsUri || null,
+    googleMapsLinks: data.googleMapsLinks || null,
   };
 }

@@ -42,6 +42,7 @@ const PLACE_DETAILS_FIELD_MASK = [
   'reviews',
   'websiteUri',
   'googleMapsUri',
+  'googleMapsLinks',
 ].join(',');
 
 const TYPE_TEXT_QUERIES = {
@@ -167,7 +168,15 @@ function mapPlaceToAttraction(place, placeType = '') {
     priceRange: mapPriceRange(place.priceRange),
     reviews: mapPlaceReviews(place),
     websiteUri: place.websiteUri || null,
-    googleMapsUri: place.googleMapsUri || null,
+    googleMapsUri: place.googleMapsUri || place.googleMapsLinks?.placeUri || null,
+    googleMapsLinks: place.googleMapsLinks
+      ? {
+          placeUri: place.googleMapsLinks.placeUri || null,
+          reviewsUri: place.googleMapsLinks.reviewsUri || null,
+          photosUri: place.googleMapsLinks.photosUri || null,
+          directionsUri: place.googleMapsLinks.directionsUri || null,
+        }
+      : null,
   });
 }
 
