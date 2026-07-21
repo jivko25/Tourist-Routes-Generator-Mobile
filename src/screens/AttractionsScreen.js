@@ -18,7 +18,7 @@ import { usePlaces } from '../hooks/usePlaces';
 import { useTravel } from '../context/TravelContext';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
 import { formatRadiusLabel } from '../utils/googleMaps';
-import { colors, spacing } from '../theme/colors';
+import { colors, radii, spacing } from '../theme/colors';
 
 export function AttractionsScreen({ navigation }) {
   const {
@@ -188,11 +188,13 @@ export function AttractionsScreen({ navigation }) {
       <View style={styles.footer}>
         <Button
           mode="contained"
-          buttonColor={colors.secondary}
+          buttonColor={colors.accent}
           textColor="#FFFFFF"
           disabled={selectedAttractions.length === 0}
           onPress={() => navigation.navigate('Route')}
           contentStyle={styles.footerButton}
+          style={styles.footerAction}
+          labelStyle={styles.footerLabel}
         >
           Your Route ({selectedAttractions.length})
         </Button>
@@ -213,8 +215,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: {
-    color: colors.primary,
-    fontWeight: '700',
+    color: colors.text,
+    fontWeight: '800',
   },
   subtitle: {
     color: colors.textMuted,
@@ -222,8 +224,7 @@ const styles = StyleSheet.create({
   search: {
     backgroundColor: colors.surface,
     elevation: 0,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radii.pill,
   },
   searchInput: {
     minHeight: 0,
@@ -259,7 +260,13 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
+  footerAction: {
+    borderRadius: radii.pill,
+  },
   footerButton: {
     paddingVertical: spacing.xs,
+  },
+  footerLabel: {
+    fontWeight: '700',
   },
 });

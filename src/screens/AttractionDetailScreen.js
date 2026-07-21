@@ -135,14 +135,16 @@ export function AttractionDetailScreen({ route, navigation }) {
 
       <View style={styles.footer}>
         <Button
-          mode={selected ? 'outlined' : 'contained'}
+          mode="contained"
           onPress={() => toggleAttraction(attraction)}
-          buttonColor={selected ? undefined : colors.secondary}
-          textColor={selected ? colors.primary : '#FFFFFF'}
+          buttonColor={selected ? colors.success : colors.accent}
+          textColor="#FFFFFF"
           contentStyle={styles.footerButton}
-          style={styles.footerAction}
+          style={[styles.footerAction, selected && styles.footerActionSelected]}
+          labelStyle={{ fontWeight: '700' }}
+          icon={selected ? 'check-circle' : 'plus'}
         >
-          {selected ? 'Remove from route' : 'Add to route'}
+          {selected ? 'Added to route' : 'Add to route'}
         </Button>
       </View>
     </SafeAreaView>
@@ -162,7 +164,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   title: {
-    color: colors.primary,
+    color: colors.text,
     fontWeight: '800',
   },
   metaRow: {
@@ -172,11 +174,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   category: {
-    color: colors.primaryLight,
+    color: colors.textMuted,
     fontWeight: '600',
   },
   rating: {
-    color: colors.secondary,
+    color: colors.text,
     fontWeight: '700',
   },
   city: {
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   distance: {
-    color: colors.secondary,
+    color: colors.accent,
     fontWeight: '700',
     marginTop: spacing.xs,
   },
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.lg,
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
@@ -218,7 +220,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   footerAction: {
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
+  },
+  footerActionSelected: {
+    borderColor: colors.success,
+    backgroundColor: colors.success,
   },
   footerButton: {
     paddingVertical: spacing.xs,

@@ -24,7 +24,7 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <TravelProvider>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <AppNavigator />
         </TravelProvider>
       </PaperProvider>

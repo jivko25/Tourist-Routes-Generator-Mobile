@@ -51,7 +51,7 @@ export function PhotoGallery({
           <Image
             key={photo.name || String(index)}
             source={{ uri: photo.url }}
-            style={{ width, height, borderRadius: radii.md }}
+            style={{ width, height, borderRadius: radii.lg }}
             resizeMode="cover"
           />
         ))}

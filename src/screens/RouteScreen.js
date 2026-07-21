@@ -28,6 +28,8 @@ export function RouteScreen({ navigation }) {
     clearRoute,
     settings,
     cityCoordinates,
+    attractions,
+    searchedCity,
   } = useTravel();
   const [opening, setOpening] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
@@ -174,6 +176,16 @@ export function RouteScreen({ navigation }) {
   const distanceOrigin = startPoint || cityCoordinates || null;
   const distanceOriginLabel = startPoint ? 'start' : 'city center';
   const canGenerate = selectedAttractions.length > 0;
+  const canAddMorePlaces =
+    Boolean(cityCoordinates) || attractions.length > 0;
+
+  const handleAddMorePlaces = () => {
+    if (canAddMorePlaces) {
+      navigation.navigate('Attractions');
+      return;
+    }
+    navigation.navigate('Home');
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -185,6 +197,20 @@ export function RouteScreen({ navigation }) {
           Preview the full path, optimize stop order, then open it in Google
           Maps.
         </Text>
+
+        <Button
+          mode="outlined"
+          onPress={handleAddMorePlaces}
+          icon="plus-circle-outline"
+          textColor={colors.primary}
+          style={styles.addMoreBtn}
+          contentStyle={styles.addMoreContent}
+          labelStyle={styles.addMoreLabel}
+        >
+          {canAddMorePlaces
+            ? `Add more places${searchedCity ? ` in ${searchedCity.split(',')[0]}` : ''}`
+            : 'Search places to add'}
+        </Button>
 
         {selectedAttractions.length > 0 ? (
           <View style={styles.mapSection}>
@@ -280,6 +306,7 @@ export function RouteScreen({ navigation }) {
             style={styles.primaryAction}
             contentStyle={styles.actionContent}
             icon="sitemap"
+            labelStyle={styles.actionLabel}
           >
             Optimize stop order
           </Button>
@@ -288,11 +315,12 @@ export function RouteScreen({ navigation }) {
             loading={opening}
             disabled={opening}
             onPress={handleGenerateRoute}
-            buttonColor={colors.secondary}
+            buttonColor={colors.accent}
             textColor="#FFFFFF"
             style={styles.primaryAction}
             contentStyle={styles.actionContent}
             icon="map-marker-path"
+            labelStyle={styles.actionLabel}
           >
             Generate Google Maps Route
           </Button>
@@ -321,13 +349,25 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   title: {
-    color: colors.primary,
-    fontWeight: '700',
+    color: colors.text,
+    fontWeight: '800',
   },
   subtitle: {
     color: colors.textMuted,
     marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  addMoreBtn: {
+    borderRadius: radii.pill,
+    borderColor: colors.primary,
     marginBottom: spacing.lg,
+    backgroundColor: colors.primarySoft,
+  },
+  addMoreContent: {
+    paddingVertical: 4,
+  },
+  addMoreLabel: {
+    fontWeight: '700',
   },
   mapSection: {
     marginBottom: spacing.lg,
@@ -340,14 +380,14 @@ const styles = StyleSheet.create({
   },
   endpoints: {
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
   endpointLabel: {
-    color: colors.primary,
+    color: colors.textMuted,
     fontWeight: '700',
     fontSize: 12,
     textTransform: 'uppercase',
@@ -360,6 +400,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 4,
     lineHeight: 20,
+    fontWeight: '600',
   },
   editSettings: {
     alignSelf: 'flex-start',
@@ -391,13 +432,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   primaryAction: {
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
   },
   secondaryAction: {
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
     borderColor: colors.error,
   },
   actionContent: {
     paddingVertical: spacing.xs,
+  },
+  actionLabel: {
+    fontWeight: '700',
   },
 });

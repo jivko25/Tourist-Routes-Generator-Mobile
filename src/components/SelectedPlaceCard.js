@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
-import { formatCoordinate } from '../utils/googleMaps';
 import {
   formatDistanceKm,
   haversineDistanceKm,
@@ -36,23 +35,20 @@ export function SelectedPlaceCard({
         <Text style={styles.indexText}>{index}</Text>
       </View>
       <View style={styles.content}>
-        <Text variant="titleSmall" style={styles.name} numberOfLines={2}>
+        <Text style={styles.name} numberOfLines={2}>
           {attraction.name}
         </Text>
         {distanceLabel ? (
-          <Text variant="bodySmall" style={styles.distance}>
+          <Text style={styles.distance}>
             {distanceLabel} from {originLabel}
           </Text>
         ) : null}
-        <Text variant="bodySmall" style={styles.coords}>
-          {formatCoordinate(attraction.latitude)},{' '}
-          {formatCoordinate(attraction.longitude)}
-        </Text>
       </View>
       <IconButton
-        icon="close-circle-outline"
-        iconColor={colors.error}
-        size={22}
+        icon="close"
+        iconColor={colors.accent}
+        size={18}
+        style={styles.close}
         onPress={() => onRemove?.(attraction.id)}
         accessibilityLabel={`Remove ${attraction.name}`}
       />
@@ -64,20 +60,20 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.success,
     paddingVertical: spacing.sm,
     paddingLeft: spacing.md,
     paddingRight: spacing.xs,
     marginBottom: spacing.sm,
   },
   indexBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -92,15 +88,16 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.text,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 15,
   },
   distance: {
-    color: colors.secondary,
-    fontWeight: '700',
+    color: colors.successDark,
+    fontWeight: '600',
     marginTop: 2,
+    fontSize: 12,
   },
-  coords: {
-    color: colors.textMuted,
-    marginTop: 2,
+  close: {
+    backgroundColor: '#FFFFFF',
   },
 });

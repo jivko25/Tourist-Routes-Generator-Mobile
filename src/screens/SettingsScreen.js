@@ -231,10 +231,11 @@ export function SettingsScreen({ navigation }) {
             mode="contained"
             onPress={handleSave}
             disabled={radiusError}
-            buttonColor={colors.secondary}
+            buttonColor={colors.primary}
             textColor="#FFFFFF"
             style={styles.saveButton}
             contentStyle={styles.saveContent}
+            labelStyle={{ fontWeight: '700' }}
           >
             {savedFlash ? 'Saved' : 'Save settings'}
           </Button>
@@ -267,14 +268,14 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
   },
   sectionTitle: {
-    color: colors.primary,
-    fontWeight: '700',
+    color: colors.text,
+    fontWeight: '800',
     marginBottom: spacing.sm,
   },
   helperInline: {
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   saveButton: {
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
     marginTop: spacing.sm,
   },
   saveContent: {

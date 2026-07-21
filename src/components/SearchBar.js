@@ -28,7 +28,8 @@ export function SearchBar({
         outlineColor={colors.border}
         activeOutlineColor={colors.primary}
         style={styles.input}
-        left={<TextInput.Icon icon="map-search-outline" />}
+        outlineStyle={styles.outline}
+        left={<TextInput.Icon icon="magnify" color={colors.primary} />}
       />
       <Button
         mode="contained"
@@ -37,8 +38,9 @@ export function SearchBar({
         disabled={loading || !value?.trim()}
         style={styles.button}
         contentStyle={styles.buttonContent}
-        buttonColor={colors.secondary}
+        buttonColor={colors.primary}
         textColor="#FFFFFF"
+        labelStyle={styles.buttonLabel}
       >
         Search
       </Button>
@@ -51,12 +53,19 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.86)',
+  },
+  outline: {
+    borderRadius: radii.md,
   },
   button: {
-    borderRadius: radii.md,
+    borderRadius: radii.pill,
   },
   buttonContent: {
     paddingVertical: spacing.sm,
+  },
+  buttonLabel: {
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

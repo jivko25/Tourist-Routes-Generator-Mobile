@@ -1,7 +1,14 @@
 import React, { useMemo, useRef } from 'react';
-import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
-import { formatCoordinate } from '../utils/googleMaps';
+import {
+  Animated,
+  ImageBackground,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Text } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GlassCard } from './GlassCard';
 import {
   formatDistanceKm,
   haversineDistanceKm,
@@ -9,8 +16,7 @@ import {
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
- * Card for a single attraction with preview photo, short description,
- * details navigation and select / deselect action.
+ * Modern photo card with glass overlay and clear selected state.
  */
 export function AttractionCard({
   attraction,
@@ -22,11 +28,6 @@ export function AttractionCard({
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const coverPhoto = attraction.photos?.[0]?.url;
-  const shortDescription = attraction.description
-    ? attraction.description.length > 110
-      ? `${attraction.description.slice(0, 110).trim()}…`
-      : attraction.description
-    : 'No description available yet. Open details to see more.';
 
   const distanceLabel = useMemo(() => {
     if (
@@ -37,14 +38,13 @@ export function AttractionCard({
       return null;
     }
 
-    const km = haversineDistanceKm(origin, attraction);
-    return formatDistanceKm(km);
+    return formatDistanceKm(haversineDistanceKm(origin, attraction));
   }, [origin, attraction]);
 
   const handleToggle = () => {
     Animated.sequence([
       Animated.timing(scale, {
-        toValue: 0.97,
+        toValue: 0.98,
         duration: 90,
         useNativeDriver: true,
       }),
@@ -58,143 +58,215 @@ export function AttractionCard({
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <Card
+    <Animated.View style={[styles.wrap, { transform: [{ scale }] }]}>
+      <Pressable
+        onPress={() => onPressDetails?.(attraction)}
         style={[styles.card, selected && styles.cardSelected]}
-        mode="elevated"
       >
-        <Pressable onPress={() => onPressDetails?.(attraction)}>
-          {coverPhoto ? (
-            <Image source={{ uri: coverPhoto }} style={styles.cover} />
-          ) : (
-            <View style={[styles.cover, styles.coverPlaceholder]}>
-              <Text style={styles.coverPlaceholderText}>No photo</Text>
-            </View>
-          )}
-          <Card.Content style={styles.content}>
-            <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.name} numberOfLines={2}>
-                {attraction.name}
-              </Text>
+        <ImageBackground
+          source={coverPhoto ? { uri: coverPhoto } : undefined}
+          style={styles.image}
+          imageStyle={styles.imageInner}
+        >
+          {!coverPhoto ? <View style={styles.imageFallback} /> : null}
+          <LinearGradient
+            colors={
+              selected
+                ? ['rgba(22,163,74,0.28)', 'rgba(15,23,42,0.55)']
+                : ['transparent', 'rgba(15,23,42,0.4)']
+            }
+            style={StyleSheet.absoluteFill}
+          />
+
+          <View style={styles.topRow}>
+            <View style={styles.topLeft}>
               {typeof attraction.rating === 'number' ? (
-                <Text style={styles.rating}>★ {attraction.rating.toFixed(1)}</Text>
+                <View style={styles.pill}>
+                  <Text style={styles.pillText}>
+                    ★ {attraction.rating.toFixed(1)}
+                  </Text>
+                </View>
+              ) : null}
+              {distanceLabel ? (
+                <View style={[styles.pill, styles.pillBlue]}>
+                  <Text style={[styles.pillText, styles.pillBlueText]}>
+                    {distanceLabel}
+                  </Text>
+                </View>
               ) : null}
             </View>
-            <Text variant="bodyMedium" style={styles.meta}>
+
+            {selected ? (
+              <View style={styles.selectedBadge}>
+                <Text style={styles.selectedBadgeText}>✓ Added</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <GlassCard
+            dark
+            intensity={28}
+            tint="dark"
+            style={styles.glass}
+            contentStyle={styles.glassContent}
+          >
+            <Text style={styles.name} numberOfLines={2}>
+              {attraction.name}
+            </Text>
+            <Text style={styles.meta} numberOfLines={1}>
               {attraction.category || 'Tourist Attraction'}
+              {cityName ? ` · ${cityName}` : ''}
             </Text>
-            {cityName ? (
-              <Text variant="bodySmall" style={styles.city}>
-                {cityName}
+            {attraction.description ? (
+              <Text style={styles.description} numberOfLines={2}>
+                {attraction.description}
               </Text>
             ) : null}
-            {distanceLabel ? (
-              <Text variant="bodyMedium" style={styles.distance}>
-                {distanceLabel} from city center
-              </Text>
-            ) : null}
-            <Text variant="bodyMedium" style={styles.description} numberOfLines={3}>
-              {shortDescription}
-            </Text>
-            <Text variant="bodySmall" style={styles.coords}>
-              {formatCoordinate(attraction.latitude)},{' '}
-              {formatCoordinate(attraction.longitude)}
-            </Text>
-          </Card.Content>
-        </Pressable>
-        <Card.Actions style={styles.actions}>
-          <Button
-            mode="text"
-            onPress={() => onPressDetails?.(attraction)}
-            textColor={colors.primary}
-          >
-            Details
-          </Button>
-          <Button
-            mode={selected ? 'outlined' : 'contained'}
-            onPress={handleToggle}
-            buttonColor={selected ? undefined : colors.primary}
-            textColor={selected ? colors.primary : '#FFFFFF'}
-            style={styles.action}
-          >
-            {selected ? 'Remove' : 'Add'}
-          </Button>
-        </Card.Actions>
-      </Card>
+          </GlassCard>
+        </ImageBackground>
+      </Pressable>
+
+      <View style={styles.actions}>
+        <Button
+          mode="outlined"
+          onPress={() => onPressDetails?.(attraction)}
+          textColor={colors.primary}
+          style={styles.secondaryBtn}
+          labelStyle={styles.actionLabel}
+        >
+          Details
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleToggle}
+          buttonColor={selected ? colors.success : colors.accent}
+          textColor="#FFFFFF"
+          style={[styles.primaryBtn, selected && styles.primaryBtnSelected]}
+          labelStyle={styles.actionLabel}
+          icon={selected ? 'check-circle' : 'plus'}
+        >
+          {selected ? 'Added' : 'Add'}
+        </Button>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    marginBottom: spacing.lg,
+  },
   card: {
-    marginBottom: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radii.lg,
     overflow: 'hidden',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   cardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.secondarySoft,
+    borderColor: colors.selectedBorder,
+    shadowColor: colors.success,
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
-  cover: {
-    width: '100%',
-    height: 160,
-    backgroundColor: colors.surfaceMuted,
+  image: {
+    height: 240,
+    justifyContent: 'space-between',
+    padding: spacing.md,
   },
-  coverPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  imageInner: {
+    borderRadius: radii.lg - 2,
   },
-  coverPlaceholderText: {
-    color: colors.textMuted,
+  imageFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#C7D7EE',
   },
-  content: {
-    paddingTop: spacing.md,
-  },
-  titleRow: {
+  topRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: spacing.sm,
   },
-  name: {
+  topLeft: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     flex: 1,
+  },
+  pill: {
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  pillBlue: {
+    backgroundColor: colors.primarySoft,
+  },
+  pillText: {
     color: colors.text,
     fontWeight: '700',
+    fontSize: 12,
   },
-  rating: {
-    color: colors.secondary,
-    fontWeight: '700',
-    marginTop: 2,
+  pillBlueText: {
+    color: colors.primaryDark,
+  },
+  selectedBadge: {
+    backgroundColor: colors.success,
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  selectedBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  glass: {
+    borderRadius: radii.md,
+  },
+  glassContent: {
+    padding: spacing.md,
+    gap: 4,
+  },
+  name: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
   },
   meta: {
-    color: colors.primaryLight,
-    marginTop: spacing.xs,
-  },
-  city: {
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  distance: {
-    color: colors.secondary,
-    fontWeight: '700',
-    marginTop: spacing.xs,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '500',
   },
   description: {
-    color: colors.text,
-    marginTop: spacing.sm,
-    lineHeight: 21,
-  },
-  coords: {
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-    fontVariant: ['tabular-nums'],
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
   actions: {
-    justifyContent: 'space-between',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  action: {
-    borderRadius: radii.sm,
+  secondaryBtn: {
+    flex: 1,
+    borderRadius: radii.pill,
+    borderColor: colors.primary,
+  },
+  primaryBtn: {
+    flex: 1,
+    borderRadius: radii.pill,
+  },
+  primaryBtnSelected: {
+    borderColor: colors.success,
+    backgroundColor: colors.success,
+  },
+  actionLabel: {
+    fontWeight: '700',
   },
 });

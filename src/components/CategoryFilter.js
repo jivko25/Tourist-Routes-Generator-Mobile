@@ -5,7 +5,7 @@ import { PLACE_CATEGORIES } from '../constants/placeCategories';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
- * Multi-select chips for place categories.
+ * Pill chips for place categories — light blue selected state.
  */
 export function CategoryFilter({
   selectedIds = [],
@@ -16,7 +16,6 @@ export function CategoryFilter({
     const isSelected = selectedIds.includes(categoryId);
 
     if (isSelected) {
-      // Keep at least one category active.
       if (selectedIds.length === 1) return;
       onChange?.(selectedIds.filter((id) => id !== categoryId));
       return;
@@ -66,19 +65,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   chip: {
-    borderRadius: radii.lg,
+    borderRadius: radii.pill,
+    backgroundColor: colors.chip,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    borderColor: 'transparent',
   },
   chipSelected: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderColor: colors.primaryDark,
   },
   chipText: {
-    color: colors.text,
+    color: colors.primaryDark,
     fontWeight: '600',
     fontSize: 13,
   },

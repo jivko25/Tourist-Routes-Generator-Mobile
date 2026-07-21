@@ -121,7 +121,7 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
         {showRoute && routeCoordinates.length > 1 ? (
           <Polyline
             coordinates={routeCoordinates}
-            strokeColor={colors.secondary}
+            strokeColor={colors.accent}
             strokeWidth={4}
           />
         ) : null}
@@ -129,10 +129,10 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
         {validPoints.map((point, index) => {
           const pinColor =
             point.role === 'start'
-              ? colors.success
+              ? colors.primary
               : point.role === 'end'
-                ? colors.error
-                : colors.primary;
+                ? colors.accent
+                : colors.primaryDark;
 
           return (
             <Marker
@@ -160,7 +160,7 @@ export function PlaceMap({ points = [], showRoute = false, height = 220 }) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceMuted,
