@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   View,
@@ -13,11 +14,16 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractionCard } from '../components/AttractionCard';
-import { CategoryFilter } from '../components/CategoryFilter';
+import { PlacesOptionsSheet } from '../components/PlacesOptionsSheet';
 import { usePlaces } from '../hooks/usePlaces';
 import { useTravel } from '../context/TravelContext';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
 import { formatRadiusLabel } from '../utils/googleMaps';
+import {
+  DEFAULT_SORT_ID,
+  formatSortLabel,
+  sortAttractions,
+} from '../utils/attractionSort';
 import { colors, radii, spacing } from '../theme/colors';
 
 export function AttractionsScreen({ navigation }) {
@@ -34,23 +40,27 @@ export function AttractionsScreen({ navigation }) {
   const { loading, error, setError, refreshAttractions } = usePlaces();
   const [refreshing, setRefreshing] = useState(false);
   const [listQuery, setListQuery] = useState('');
+  const [sortId, setSortId] = useState(DEFAULT_SORT_ID);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const filteredAttractions = useMemo(() => {
     const query = listQuery.trim().toLowerCase();
-    if (!query) return attractions;
+    const filtered = !query
+      ? attractions
+      : attractions.filter((item) => {
+          const haystack = [
+            item.name,
+            item.category,
+            item.description,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(query);
+        });
 
-    return attractions.filter((item) => {
-      const haystack = [
-        item.name,
-        item.category,
-        item.description,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [attractions, listQuery]);
+    return sortAttractions(filtered, sortId, cityCoordinates);
+  }, [attractions, listQuery, sortId, cityCoordinates]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -110,7 +120,12 @@ export function AttractionsScreen({ navigation }) {
         <Text style={styles.emptyText}>
           Try other categories, a larger radius, or another city.
         </Text>
-        <Button mode="outlined" onPress={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })}>
+        <Button
+          mode="outlined"
+          onPress={() =>
+            navigation.navigate('MainTabs', { screen: 'HomeTab' })
+          }
+        >
           Search again
         </Button>
       </View>
@@ -127,8 +142,7 @@ export function AttractionsScreen({ navigation }) {
           {filteredAttractions.length}
           {listQuery.trim() ? ` / ${attractions.length}` : ''} place
           {filteredAttractions.length === 1 ? '' : 's'} ·{' '}
-          {formatRadiusLabel(settings.searchRadiusMeters)} ·{' '}
-          {formatSelectedCategoriesLabel(settings.selectedCategories)}
+          {formatRadiusLabel(settings.searchRadiusMeters)}
         </Text>
 
         <Searchbar
@@ -140,10 +154,16 @@ export function AttractionsScreen({ navigation }) {
           iconColor={colors.primary}
         />
 
-        <CategoryFilter
-          selectedIds={settings.selectedCategories || ['tourist']}
-          onChange={handleCategoriesChange}
-        />
+        <Pressable
+          style={styles.optionsButton}
+          onPress={() => setOptionsOpen(true)}
+        >
+          <Text style={styles.optionsButtonText}>
+            Sort: {formatSortLabel(sortId)} ·{' '}
+            {formatSelectedCategoriesLabel(settings.selectedCategories)}
+          </Text>
+          <Text style={styles.optionsChevron}>▾</Text>
+        </Pressable>
 
         {error ? (
           <Text style={styles.error} onPress={() => setError(null)}>
@@ -201,6 +221,15 @@ export function AttractionsScreen({ navigation }) {
           Your Route ({selectedAttractions.length})
         </Button>
       </View>
+
+      <PlacesOptionsSheet
+        visible={optionsOpen}
+        onClose={() => setOptionsOpen(false)}
+        sortId={sortId}
+        onSortChange={setSortId}
+        selectedCategories={settings.selectedCategories || ['tourist']}
+        onCategoriesChange={handleCategoriesChange}
+      />
     </SafeAreaView>
   );
 }
@@ -230,6 +259,28 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     minHeight: 0,
+  },
+  optionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  optionsButtonText: {
+    flex: 1,
+    color: colors.primaryDark,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  optionsChevron: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    marginLeft: spacing.sm,
   },
   error: {
     color: colors.error,

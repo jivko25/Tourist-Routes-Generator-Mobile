@@ -1,14 +1,15 @@
 /**
  * Place category filters mapped to Google Places API (New) Table A types.
- * Default selection is tourist attractions only.
+ * Default selection is tourist attractions (+ popular related sights).
  */
 
 export const PLACE_CATEGORIES = [
   {
     id: 'tourist',
     label: 'Tourist',
-    description: 'Popular tourist attractions',
-    types: ['tourist_attraction'],
+    description: 'Popular tourist attractions, aquariums and zoos',
+    // Aquarium/zoo often are not tagged only as tourist_attraction (e.g. Oceanário).
+    types: ['tourist_attraction', 'aquarium', 'zoo', 'amusement_park'],
   },
   {
     id: 'museums',
@@ -74,7 +75,7 @@ export function resolvePlaceTypes(categoryIds = DEFAULT_PLACE_CATEGORY_IDS) {
     });
   });
 
-  return types.length > 0 ? types : ['tourist_attraction'];
+  return types.length > 0 ? types : ['tourist_attraction', 'aquarium', 'zoo'];
 }
 
 /**

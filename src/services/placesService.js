@@ -5,10 +5,13 @@ import {
   DEFAULT_SEARCH_RADIUS_METERS,
   getGooglePlacesApiKey,
   PLACES_API_BASE_URL,
+  PLACES_MAX_PAGES_PER_TYPE,
   PLACES_NEARBY_MAX_RADIUS_METERS,
+  PLACES_SOFT_RESULT_LIMIT,
 } from '../utils/config';
 import { mapPlacePhotos } from '../utils/placePhotos';
 import { haversineDistanceKm } from '../utils/routeOptimization';
+import { getPopularityScore } from '../utils/attractionSort';
 
 const PLACE_FIELD_MASK = [
   'places.displayName',
@@ -18,6 +21,8 @@ const PLACE_FIELD_MASK = [
   'places.editorialSummary',
   'places.primaryTypeDisplayName',
   'places.rating',
+  'places.userRatingCount',
+  'nextPageToken',
 ].join(',');
 
 const TYPE_TEXT_QUERIES = {
@@ -36,12 +41,29 @@ const TYPE_TEXT_QUERIES = {
   hindu_temple: 'hindu temples',
   amusement_park: 'amusement parks',
   zoo: 'zoos',
-  aquarium: 'aquariums',
+  aquarium: 'aquarium',
 };
+
+/** Niche types rarely need many pages; tourist/museum/park get full pagination. */
+const TYPE_MAX_PAGES = {
+  aquarium: 2,
+  zoo: 2,
+  amusement_park: 2,
+  national_park: 2,
+  hiking_area: 2,
+  cultural_center: 2,
+  performing_arts_theater: 2,
+  hindu_temple: 2,
+  synagogue: 2,
+  mosque: 2,
+};
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Approximate a circle as a lat/lng bounding rectangle.
- * Used when radius exceeds Nearby Search's 50 km circle limit.
  *
  * @param {{ latitude: number, longitude: number }} center
  * @param {number} radiusMeters
@@ -89,6 +111,7 @@ function mapPlaceToAttraction(place, placeType) {
     description: place.editorialSummary?.text || '',
     photos: mapPlacePhotos(place.photos, 8),
     rating: place.rating,
+    userRatingCount: place.userRatingCount,
   });
 }
 
@@ -96,7 +119,6 @@ function mapPlaceToAttraction(place, placeType) {
  * @param {{ latitude: number, longitude: number }} center
  * @param {string} placeType
  * @param {{ radius: number, maxResultCount: number, apiKey: string }} options
- * @returns {Promise<import('../types/attraction').Attraction[]>}
  */
 async function searchNearbyByType(center, placeType, options) {
   const response = await axios.post(
@@ -130,51 +152,104 @@ async function searchNearbyByType(center, placeType, options) {
 }
 
 /**
- * Text Search over a rectangular area — supports radii above the 50 km Nearby limit.
+ * Paginated Text Search for a place type within a circular area.
+ * Fetches multiple pages via nextPageToken.
  *
  * @param {{ latitude: number, longitude: number }} center
  * @param {string} placeType
- * @param {{ radius: number, maxResultCount: number, apiKey: string }} options
- * @returns {Promise<import('../types/attraction').Attraction[]>}
+ * @param {{ radius: number, maxResultCount: number, apiKey: string, maxPages?: number }} options
  */
-async function searchWideAreaByType(center, placeType, options) {
+async function searchTextByTypePaginated(center, placeType, options) {
   const rectangle = circleToRectangle(center, options.radius);
   const textQuery =
     TYPE_TEXT_QUERIES[placeType] || placeType.replace(/_/g, ' ');
+  const maxPages =
+    options.maxPages ??
+    TYPE_MAX_PAGES[placeType] ??
+    PLACES_MAX_PAGES_PER_TYPE;
+  const radiusKm = options.radius / 1000;
+  const collected = [];
+  let pageToken;
+  let page = 0;
 
-  const response = await axios.post(
-    `${PLACES_API_BASE_URL}/places:searchText`,
-    {
+  while (page < maxPages) {
+    const body = {
       textQuery,
       includedType: placeType,
-      maxResultCount: options.maxResultCount,
+      pageSize: options.maxResultCount,
       locationRestriction: {
         rectangle,
       },
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': options.apiKey,
-        'X-Goog-FieldMask': PLACE_FIELD_MASK,
-      },
-      timeout: 20000,
+    };
+
+    if (pageToken) {
+      body.pageToken = pageToken;
     }
-  );
 
-  const radiusKm = options.radius / 1000;
-
-  return (response.data?.places || [])
-    .map((place) => mapPlaceToAttraction(place, placeType))
-    .filter(Boolean)
-    .filter(
-      (attraction) => haversineDistanceKm(center, attraction) <= radiusKm
+    const response = await axios.post(
+      `${PLACES_API_BASE_URL}/places:searchText`,
+      body,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': options.apiKey,
+          'X-Goog-FieldMask': PLACE_FIELD_MASK,
+        },
+        timeout: 25000,
+      }
     );
+
+    const pagePlaces = (response.data?.places || [])
+      .map((place) => mapPlaceToAttraction(place, placeType))
+      .filter(Boolean)
+      .filter(
+        (attraction) => haversineDistanceKm(center, attraction) <= radiusKm
+      );
+
+    collected.push(...pagePlaces);
+    pageToken = response.data?.nextPageToken;
+    page += 1;
+
+    if (!pageToken) break;
+
+    // Tokens can need a short delay before becoming valid.
+    await sleep(350);
+  }
+
+  return collected;
+}
+
+/**
+ * Merge attraction lists by id, keeping the richer record.
+ *
+ * @param {import('../types/attraction').Attraction[][]} groups
+ */
+function mergeAttractions(groups) {
+  const byId = new Map();
+
+  groups.flat().forEach((attraction) => {
+    if (!byId.has(attraction.id)) {
+      byId.set(attraction.id, attraction);
+      return;
+    }
+
+    const existing = byId.get(attraction.id);
+    const richer =
+      (attraction.description?.length || 0) >
+        (existing.description?.length || 0) ||
+      (attraction.photos?.length || 0) > (existing.photos?.length || 0) ||
+      (attraction.userRatingCount || 0) > (existing.userRatingCount || 0)
+        ? attraction
+        : existing;
+    byId.set(attraction.id, richer);
+  });
+
+  return Array.from(byId.values());
 }
 
 /**
  * Searches nearby places using Google Places API (New).
- * Uses Nearby Search up to 50 km; for larger radii uses Text Search + rectangle.
+ * Nearby Search for <=50km + paginated Text Search for fuller coverage.
  *
  * @param {{ latitude: number, longitude: number }} center
  * @param {{ radius?: number, maxResultCount?: number, includedTypes?: string[] }} [options]
@@ -194,56 +269,56 @@ export async function searchNearbyAttractions(center, options = {}) {
   const includedTypes =
     Array.isArray(options.includedTypes) && options.includedTypes.length > 0
       ? options.includedTypes
-      : ['tourist_attraction'];
+      : ['tourist_attraction', 'aquarium', 'zoo'];
 
-  const useWideSearch = radius > PLACES_NEARBY_MAX_RADIUS_METERS;
-  const searchFn = useWideSearch ? searchWideAreaByType : searchNearbyByType;
-  const requestRadius = useWideSearch
-    ? radius
-    : Math.min(radius, PLACES_NEARBY_MAX_RADIUS_METERS);
+  const nearbyRadius = Math.min(radius, PLACES_NEARBY_MAX_RADIUS_METERS);
+  const useNearby = radius <= PLACES_NEARBY_MAX_RADIUS_METERS;
 
   const results = await Promise.all(
-    includedTypes.map((placeType) =>
-      searchFn(center, placeType, {
-        apiKey,
-        radius: requestRadius,
-        maxResultCount,
-      }).catch((error) => {
+    includedTypes.map(async (placeType) => {
+      try {
+        const requests = [
+          searchTextByTypePaginated(center, placeType, {
+            apiKey,
+            radius,
+            maxResultCount,
+          }),
+        ];
+
+        if (useNearby) {
+          requests.push(
+            searchNearbyByType(center, placeType, {
+              apiKey,
+              radius: nearbyRadius,
+              maxResultCount,
+            })
+          );
+        }
+
+        const groups = await Promise.all(
+          requests.map((request) =>
+            request.catch((error) => {
+              console.warn(
+                `Place search failed for type "${placeType}":`,
+                error?.response?.data?.error?.message || error?.message
+              );
+              return [];
+            })
+          )
+        );
+
+        return mergeAttractions(groups);
+      } catch (error) {
         console.warn(
           `Place search failed for type "${placeType}":`,
           error?.response?.data?.error?.message || error?.message
         );
         return [];
-      })
-    )
+      }
+    })
   );
 
-  const byId = new Map();
-
-  results.flat().forEach((attraction) => {
-    if (!byId.has(attraction.id)) {
-      byId.set(attraction.id, attraction);
-      return;
-    }
-
-    const existing = byId.get(attraction.id);
-    const richer =
-      (attraction.description?.length || 0) > (existing.description?.length || 0) ||
-      (attraction.photos?.length || 0) > (existing.photos?.length || 0)
-        ? attraction
-        : existing;
-    byId.set(attraction.id, richer);
-  });
-
-  return Array.from(byId.values())
-    .sort((a, b) => {
-      const distanceDiff =
-        haversineDistanceKm(center, a) - haversineDistanceKm(center, b);
-      if (Math.abs(distanceDiff) > 0.05) return distanceDiff;
-      return (b.rating || 0) - (a.rating || 0);
-    })
-    .slice(
-      0,
-      Math.min(40, maxResultCount * Math.max(1, includedTypes.length))
-    );
+  return mergeAttractions(results)
+    .sort((a, b) => getPopularityScore(b) - getPopularityScore(a))
+    .slice(0, PLACES_SOFT_RESULT_LIMIT);
 }

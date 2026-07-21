@@ -30,6 +30,7 @@
  * @property {string} description
  * @property {AttractionPhoto[]} photos
  * @property {number|null} rating
+ * @property {number|null} userRatingCount
  */
 
 /**
@@ -60,5 +61,7 @@ export function createAttraction(data) {
     description: data.description || '',
     photos: Array.isArray(data.photos) ? data.photos : [],
     rating: typeof data.rating === 'number' ? data.rating : null,
+    userRatingCount:
+      typeof data.userRatingCount === 'number' ? data.userRatingCount : null,
   };
 }

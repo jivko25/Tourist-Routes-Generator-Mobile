@@ -24,6 +24,10 @@ export const MAX_SEARCH_RADIUS_METERS = 200000;
 /** Google Places Nearby Search circle radius hard limit */
 export const PLACES_NEARBY_MAX_RADIUS_METERS = 50000;
 export const DEFAULT_MAX_RESULTS = 20;
+/** Max Text Search pages per place type (20 results each). */
+export const PLACES_MAX_PAGES_PER_TYPE = 5;
+/** Soft cap after merge across all types. */
+export const PLACES_SOFT_RESULT_LIMIT = 200;
 
 export const RADIUS_PRESETS = [
   { label: '5 km', value: 5000 },
