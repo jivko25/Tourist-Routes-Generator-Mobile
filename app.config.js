@@ -1,32 +1,30 @@
 require('dotenv').config();
 
 module.exports = {
-  name: 'Tourist Routes Generator',
-  slug: 'Tourist-Routes-Generator-Mobile',
+  name: 'Travel Go',
+  slug: 'travel-go',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/TravelGoIcon.png',
   userInterfaceStyle: 'light',
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/TravelGoIcon.png',
     resizeMode: 'contain',
-    backgroundColor: '#0B3D2E',
+    backgroundColor: '#5BA8DC',
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.touristroutes.generator',
+    bundleIdentifier: 'com.travelgo.app',
     config: {
       googleMapsApiKey: process.env.GOOGLE_PLACES_API_KEY,
     },
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#0B3D2E',
-      foregroundImage: './assets/android-icon-foreground.png',
-      backgroundImage: './assets/android-icon-background.png',
-      monochromeImage: './assets/android-icon-monochrome.png',
+      backgroundColor: '#5BA8DC',
+      foregroundImage: './assets/TravelGoIcon.png',
     },
-    package: 'com.touristroutes.generator',
+    package: 'com.travelgo.app',
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_PLACES_API_KEY,
@@ -34,7 +32,7 @@ module.exports = {
     },
   },
   web: {
-    favicon: './assets/favicon.png',
+    favicon: './assets/TravelGoIcon.png',
   },
   extra: {
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,

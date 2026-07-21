@@ -82,7 +82,7 @@ export function HomeScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.topBar}>
-              <Text style={styles.brand}>Tourist Routes</Text>
+              <Text style={styles.brand}>Travel Go</Text>
               <IconButton
                 icon="cog-outline"
                 iconColor={colors.text}

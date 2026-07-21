@@ -1,6 +1,6 @@
-# Tourist Routes Generator
+# Travel Go
 
-Production-ready React Native (Expo) travel planner: search a city, discover nearby tourist attractions via Google Places API (New), select places, and open a Google Maps multi-stop route.
+React Native (Expo) travel planner: search a city, discover nearby attractions via Google Places API (New), select stops, optimize the route, and open it in Google Maps.
 
 ## Stack
 
