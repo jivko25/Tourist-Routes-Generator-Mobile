@@ -15,7 +15,9 @@ import { SearchBar } from '../components/SearchBar';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { GlassCard } from '../components/GlassCard';
 import { ActiveRouteCard } from '../components/ActiveRouteCard';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { usePlaces } from '../hooks/usePlaces';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useTravel } from '../context/TravelContext';
 import { formatRadiusLabel } from '../utils/googleMaps';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
@@ -34,6 +36,7 @@ export function HomeScreen({ navigation }) {
     clearRoute,
   } = useTravel();
   const { loading, error, setError, searchCityAttractions } = usePlaces();
+  const { isOffline } = useNetworkStatus();
   const heroOpacity = useRef(new Animated.Value(0)).current;
   const heroTranslate = useRef(new Animated.Value(18)).current;
   const hasActiveRoute = selectedAttractions.length > 0;
@@ -54,6 +57,13 @@ export function HomeScreen({ navigation }) {
   }, [heroOpacity, heroTranslate]);
 
   const handleSearch = async () => {
+    if (isOffline) {
+      setError(
+        'You’re offline. Open a saved route instead — new city searches need internet.'
+      );
+      return;
+    }
+
     try {
       const { attractions } = await searchCityAttractions(query);
       navigation.navigate('Attractions', {
@@ -131,6 +141,10 @@ export function HomeScreen({ navigation }) {
                 />
               ) : null}
 
+              {isOffline ? (
+                <OfflineBanner message="Saved routes still open offline. New city searches need internet." />
+              ) : null}
+
               <GlassCard style={styles.panel} contentStyle={styles.panelContent}>
                 <Text style={styles.panelTitle}>
                   {hasActiveRoute ? 'Add more places' : 'Start exploring'}
@@ -140,6 +154,7 @@ export function HomeScreen({ navigation }) {
                   onChangeText={setQuery}
                   onSearch={handleSearch}
                   loading={loading}
+                  disabled={isOffline}
                 />
 
                 <Text style={styles.filterLabel}>Place types</Text>

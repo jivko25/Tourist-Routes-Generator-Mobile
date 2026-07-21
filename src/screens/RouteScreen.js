@@ -10,7 +10,9 @@ import { Button, Dialog, Portal, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaceMap } from '../components/PlaceMap';
 import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { useTravel } from '../context/TravelContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { geocodeCity } from '../services/geocodingService';
 import { openGoogleMapsRoute } from '../services/mapsService';
 import { fetchRouteTravelEstimate } from '../services/directionsService';
@@ -42,6 +44,7 @@ export function RouteScreen({ navigation }) {
     saveCurrentRoute,
     patchSelectedAttraction,
   } = useTravel();
+  const { isOffline } = useNetworkStatus();
   const [opening, setOpening] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,6 +79,10 @@ export function RouteScreen({ navigation }) {
     let mounted = true;
 
     async function resolveEndpoints() {
+      if (isOffline) {
+        return;
+      }
+
       try {
         const [start, end] = await Promise.all([
           startAddress
@@ -120,7 +127,7 @@ export function RouteScreen({ navigation }) {
     return () => {
       mounted = false;
     };
-  }, [startAddress, endAddress]);
+  }, [startAddress, endAddress, isOffline]);
 
   const mapPoints = useMemo(() => {
     const stops = selectedAttractions.map((attraction, index) => ({
@@ -156,8 +163,10 @@ export function RouteScreen({ navigation }) {
   }, [selectedAttractions, startPoint, endPoint, gpsStartPoint, gpsEndPoint]);
 
   useEffect(() => {
-    if (selectedAttractions.length === 0) {
-      fetchedHoursIdsRef.current.clear();
+    if (isOffline || selectedAttractions.length === 0) {
+      if (selectedAttractions.length === 0) {
+        fetchedHoursIdsRef.current.clear();
+      }
       return undefined;
     }
 
@@ -217,6 +226,7 @@ export function RouteScreen({ navigation }) {
   }, [
     selectedAttractions.map((item) => item.id).join('|'),
     patchSelectedAttraction,
+    isOffline,
   ]);
 
   useEffect(() => {
@@ -252,10 +262,10 @@ export function RouteScreen({ navigation }) {
       end: endPoint,
     });
 
-    if (pathPoints.length < 2) {
+    if (isOffline || pathPoints.length < 2) {
       setLiveTravelMinutes(null);
       setTravelLoading(false);
-      setTravelError(null);
+      setTravelError(isOffline ? 'Offline — using approximate travel time.' : null);
       return undefined;
     }
 
@@ -294,6 +304,7 @@ export function RouteScreen({ navigation }) {
     startPoint,
     endPoint,
     settings.travelMode,
+    isOffline,
   ]);
 
   const handleOptimizeRoute = () => {
@@ -349,25 +360,41 @@ export function RouteScreen({ navigation }) {
   };
 
   const handleGenerateRoute = async () => {
-    setOpening(true);
-    try {
-      const origin = gpsStartPoint
-        ? `${gpsStartPoint.latitude},${gpsStartPoint.longitude}`
-        : startAddress;
-      const destination = gpsEndPoint
-        ? `${gpsEndPoint.latitude},${gpsEndPoint.longitude}`
-        : endAddress;
+    const openMaps = async () => {
+      setOpening(true);
+      try {
+        const origin = gpsStartPoint
+          ? `${gpsStartPoint.latitude},${gpsStartPoint.longitude}`
+          : startAddress;
+        const destination = gpsEndPoint
+          ? `${gpsEndPoint.latitude},${gpsEndPoint.longitude}`
+          : endAddress;
 
-      await openGoogleMapsRoute(selectedAttractions, {
-        origin,
-        destination,
-        travelMode: settings.travelMode,
-      });
-    } catch (error) {
-      Alert.alert('Route error', error.message || 'Could not open Google Maps.');
-    } finally {
-      setOpening(false);
+        await openGoogleMapsRoute(selectedAttractions, {
+          origin,
+          destination,
+          travelMode: settings.travelMode,
+        });
+      } catch (error) {
+        Alert.alert('Route error', error.message || 'Could not open Google Maps.');
+      } finally {
+        setOpening(false);
+      }
+    };
+
+    if (isOffline) {
+      Alert.alert(
+        'You’re offline',
+        'Google Maps needs internet to build turn-by-turn directions. Your stops stay available here. If you already downloaded offline maps in the Google Maps app for this area, opening may still work — otherwise try again online.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try anyway', onPress: openMaps },
+        ]
+      );
+      return;
     }
+
+    await openMaps();
   };
 
   const handleClearRoute = () => {
@@ -456,6 +483,14 @@ export function RouteScreen({ navigation }) {
   );
 
   const handleAddMorePlaces = () => {
+    if (isOffline && !canAddMorePlaces) {
+      Alert.alert(
+        'You’re offline',
+        'New place searches need internet. You can still review this saved route offline.'
+      );
+      return;
+    }
+
     if (canAddMorePlaces) {
       navigation.navigate('Attractions');
       return;
@@ -474,6 +509,10 @@ export function RouteScreen({ navigation }) {
           Maps.
         </Text>
 
+        {isOffline ? (
+          <OfflineBanner message="Reviewing saved stops offline. Live hours, Google travel times, and Maps directions need internet." />
+        ) : null}
+
         <Button
           mode="outlined"
           onPress={handleAddMorePlaces}
@@ -482,6 +521,7 @@ export function RouteScreen({ navigation }) {
           style={styles.addMoreBtn}
           contentStyle={styles.addMoreContent}
           labelStyle={styles.addMoreLabel}
+          disabled={isOffline && !canAddMorePlaces}
         >
           {canAddMorePlaces
             ? `Add more places${searchedCity ? ` in ${searchedCity.split(',')[0]}` : ''}`

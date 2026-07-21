@@ -8,6 +8,7 @@
  * @property {string} startAddress
  * @property {string} endAddress
  * @property {string} travelMode
+ * @property {string|null} googleMapsUrl
  * @property {import('./attraction').Attraction[]} attractions
  */
 
@@ -31,6 +32,7 @@ export function createSavedRoute(data) {
     startAddress: data.startAddress || '',
     endAddress: data.endAddress || '',
     travelMode: data.travelMode || 'walking',
+    googleMapsUrl: data.googleMapsUrl || null,
     attractions,
   };
 }

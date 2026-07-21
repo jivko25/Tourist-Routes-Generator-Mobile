@@ -15,7 +15,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractionCard } from '../components/AttractionCard';
 import { PlacesOptionsSheet } from '../components/PlacesOptionsSheet';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { usePlaces } from '../hooks/usePlaces';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useTravel } from '../context/TravelContext';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
 import { formatRadiusLabel } from '../utils/googleMaps';
@@ -38,6 +40,7 @@ export function AttractionsScreen({ navigation }) {
     isAttractionSelected,
   } = useTravel();
   const { loading, error, setError, refreshAttractions } = usePlaces();
+  const { isOffline } = useNetworkStatus();
   const [refreshing, setRefreshing] = useState(false);
   const [listQuery, setListQuery] = useState('');
   const [sortId, setSortId] = useState(DEFAULT_SORT_ID);
@@ -63,6 +66,11 @@ export function AttractionsScreen({ navigation }) {
   }, [attractions, listQuery, sortId, cityCoordinates]);
 
   const onRefresh = useCallback(async () => {
+    if (isOffline) {
+      setError('You’re offline. Pull-to-refresh needs internet.');
+      return;
+    }
+
     setRefreshing(true);
     try {
       await refreshAttractions(cityCoordinates, searchedCity);
@@ -71,12 +79,16 @@ export function AttractionsScreen({ navigation }) {
     } finally {
       setRefreshing(false);
     }
-  }, [cityCoordinates, searchedCity, refreshAttractions]);
+  }, [cityCoordinates, searchedCity, refreshAttractions, isOffline, setError]);
 
   const handleCategoriesChange = useCallback(
     async (nextCategories) => {
       updateSettings({ selectedCategories: nextCategories });
       if (!cityCoordinates) return;
+      if (isOffline) {
+        setError('You’re offline. Changing place types needs internet.');
+        return;
+      }
 
       try {
         await refreshAttractions(cityCoordinates, searchedCity, {
@@ -86,7 +98,14 @@ export function AttractionsScreen({ navigation }) {
         // Error handled in hook.
       }
     },
-    [updateSettings, cityCoordinates, searchedCity, refreshAttractions]
+    [
+      updateSettings,
+      cityCoordinates,
+      searchedCity,
+      refreshAttractions,
+      isOffline,
+      setError,
+    ]
   );
 
   const renderEmpty = () => {
@@ -144,6 +163,10 @@ export function AttractionsScreen({ navigation }) {
           {filteredAttractions.length === 1 ? '' : 's'} ·{' '}
           {formatRadiusLabel(settings.searchRadiusMeters)}
         </Text>
+
+        {isOffline ? (
+          <OfflineBanner message="Browsing cached results. Refresh and category changes need internet." />
+        ) : null}
 
         <Searchbar
           placeholder="Search places…"

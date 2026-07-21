@@ -11,6 +11,7 @@ import {
   storageService,
 } from '../services/storageService';
 import { createSavedRoute } from '../types/savedRoute';
+import { generateGoogleMapsRoute } from '../services/mapsService';
 import {
   MAX_SEARCH_RADIUS_METERS,
   MIN_SEARCH_RADIUS_METERS,
@@ -197,6 +198,17 @@ export function TravelProvider({ children }) {
         throw new Error('Add at least one place before saving a route.');
       }
 
+      let googleMapsUrl = null;
+      try {
+        googleMapsUrl = generateGoogleMapsRoute(selectedAttractions, {
+          origin: settings.startAddress,
+          destination: settings.endAddress,
+          travelMode: settings.travelMode,
+        });
+      } catch {
+        googleMapsUrl = null;
+      }
+
       const route = createSavedRoute({
         name,
         cityName: searchedCity,
@@ -204,6 +216,7 @@ export function TravelProvider({ children }) {
         startAddress: settings.startAddress,
         endAddress: settings.endAddress,
         travelMode: settings.travelMode,
+        googleMapsUrl,
         attractions: selectedAttractions,
       });
 

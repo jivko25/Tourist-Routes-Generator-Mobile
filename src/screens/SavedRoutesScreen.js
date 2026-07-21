@@ -10,6 +10,8 @@ import {
 import { Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTravel } from '../context/TravelContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -31,6 +33,7 @@ export function SavedRoutesScreen({ navigation }) {
     deleteSavedRoute,
     loadSavedRoute,
   } = useTravel();
+  const { isOffline } = useNetworkStatus();
   const [loadingId, setLoadingId] = useState(null);
 
   const sortedRoutes = useMemo(
@@ -136,8 +139,15 @@ export function SavedRoutesScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.title}>Saved routes</Text>
         <Text style={styles.subtitle}>
-          Reopen a trip anytime and continue planning.
+          {isOffline
+            ? 'Available offline — open a trip to review stops without internet.'
+            : 'Reopen a trip anytime and continue planning.'}
         </Text>
+        {isOffline ? (
+          <View style={styles.offlineWrap}>
+            <OfflineBanner message="You can’t create new routes offline. Opening a saved one still works." />
+          </View>
+        ) : null}
       </View>
 
       <FlatList
@@ -191,6 +201,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.xs,
     fontSize: 14,
+  },
+  offlineWrap: {
+    marginTop: spacing.md,
   },
   list: {
     padding: spacing.lg,

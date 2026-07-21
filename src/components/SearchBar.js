@@ -11,8 +11,11 @@ export function SearchBar({
   onChangeText,
   onSearch,
   loading = false,
+  disabled = false,
   placeholder = 'Search city',
 }) {
+  const isDisabled = loading || disabled;
+
   return (
     <View style={styles.container}>
       <TextInput
@@ -24,7 +27,7 @@ export function SearchBar({
         returnKeyType="search"
         autoCapitalize="words"
         autoCorrect={false}
-        disabled={loading}
+        disabled={isDisabled}
         outlineColor={colors.border}
         activeOutlineColor={colors.primary}
         style={styles.input}
@@ -35,7 +38,7 @@ export function SearchBar({
         mode="contained"
         onPress={onSearch}
         loading={loading}
-        disabled={loading || !value?.trim()}
+        disabled={isDisabled || !value?.trim()}
         style={styles.button}
         contentStyle={styles.buttonContent}
         buttonColor={colors.primary}
