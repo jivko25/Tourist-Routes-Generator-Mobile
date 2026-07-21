@@ -58,10 +58,13 @@ function getRegionForCoordinates(coordinates) {
  * Native pin colors work reliably on Android (custom marker views often don't).
  * Android supports hue names: green, red, yellow, blue, orange, ...
  *
- * @param {{ openStatus?: string, role?: string }} point
+ * @param {{ openStatus?: string, role?: string, isGps?: boolean }} point
  * @returns {string}
  */
 function resolvePinColor(point) {
+  // GPS endpoints use brand blue — not the open/closed legend colors.
+  if (point.isGps) return 'blue';
+
   if (point.openStatus === OPEN_STATUS.open) return 'green';
   if (point.openStatus === OPEN_STATUS.closed) return 'red';
   if (point.openStatus === OPEN_STATUS.unknown) return 'yellow';
@@ -157,13 +160,17 @@ export function PlaceMap({
         ) : null}
 
         {validPoints.map((point, index) => {
-          const statusLabel = point.openStatus
-            ? formatOpenStatusLabel(point.openStatus)
-            : point.role === 'start'
-              ? 'Start'
-              : point.role === 'end'
-                ? 'End'
-                : undefined;
+          const statusLabel = point.isGps
+            ? point.role === 'end'
+              ? 'My location (end)'
+              : 'My location (start)'
+            : point.openStatus
+              ? formatOpenStatusLabel(point.openStatus)
+              : point.role === 'start'
+                ? 'Start'
+                : point.role === 'end'
+                  ? 'End'
+                  : undefined;
 
           return (
             <Marker
@@ -182,6 +189,12 @@ export function PlaceMap({
 
       {showOpenLegend ? (
         <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View
+              style={[styles.legendDot, { backgroundColor: colors.primary }]}
+            />
+            <Text style={styles.legendText}>Me</Text>
+          </View>
           <View style={styles.legendItem}>
             <View
               style={[

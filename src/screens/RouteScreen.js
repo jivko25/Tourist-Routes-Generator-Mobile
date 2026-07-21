@@ -15,6 +15,7 @@ import { geocodeCity } from '../services/geocodingService';
 import { openGoogleMapsRoute } from '../services/mapsService';
 import { fetchRouteTravelEstimate } from '../services/directionsService';
 import { fetchPlaceDetails } from '../services/placesService';
+import { getCurrentGpsPosition } from '../services/locationService';
 import {
   formatDistanceKm,
   optimizeAttractionOrder,
@@ -24,6 +25,7 @@ import {
   estimateRouteTiming,
 } from '../utils/visitDuration';
 import { getOpenStatus } from '../utils/openingHours';
+import { formatCoordinate } from '../utils/googleMaps';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -45,8 +47,11 @@ export function RouteScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
   const [routeName, setRouteName] = useState('');
-  const [startPoint, setStartPoint] = useState(null);
-  const [endPoint, setEndPoint] = useState(null);
+  const [addressStartPoint, setAddressStartPoint] = useState(null);
+  const [addressEndPoint, setAddressEndPoint] = useState(null);
+  const [gpsStartPoint, setGpsStartPoint] = useState(null);
+  const [gpsEndPoint, setGpsEndPoint] = useState(null);
+  const [gpsLoadingTarget, setGpsLoadingTarget] = useState(null);
   const [routeStats, setRouteStats] = useState(null);
   const [liveTravelMinutes, setLiveTravelMinutes] = useState(null);
   const [travelLoading, setTravelLoading] = useState(false);
@@ -54,9 +59,10 @@ export function RouteScreen({ navigation }) {
   const listOpacity = useRef(new Animated.Value(0)).current;
   const fetchedHoursIdsRef = useRef(new Set());
 
-
   const startAddress = settings.startAddress?.trim() || '';
   const endAddress = settings.endAddress?.trim() || '';
+  const startPoint = gpsStartPoint || addressStartPoint;
+  const endPoint = gpsEndPoint || addressEndPoint;
 
   useEffect(() => {
     Animated.timing(listOpacity, {
@@ -81,7 +87,7 @@ export function RouteScreen({ navigation }) {
         ]);
 
         if (!mounted) return;
-        setStartPoint(
+        setAddressStartPoint(
           start
             ? {
                 id: 'route-start',
@@ -92,7 +98,7 @@ export function RouteScreen({ navigation }) {
               }
             : null
         );
-        setEndPoint(
+        setAddressEndPoint(
           end
             ? {
                 id: 'route-end',
@@ -105,8 +111,8 @@ export function RouteScreen({ navigation }) {
         );
       } catch {
         if (!mounted) return;
-        setStartPoint(null);
-        setEndPoint(null);
+        setAddressStartPoint(null);
+        setAddressEndPoint(null);
       }
     }
 
@@ -128,12 +134,26 @@ export function RouteScreen({ navigation }) {
 
     return [
       ...(startPoint
-        ? [{ ...startPoint, openStatus: 'unknown' }]
+        ? [
+            {
+              ...startPoint,
+              isGps: Boolean(gpsStartPoint),
+              openStatus: gpsStartPoint ? undefined : 'unknown',
+            },
+          ]
         : []),
       ...stops,
-      ...(endPoint ? [{ ...endPoint, openStatus: 'unknown' }] : []),
+      ...(endPoint
+        ? [
+            {
+              ...endPoint,
+              isGps: Boolean(gpsEndPoint),
+              openStatus: gpsEndPoint ? undefined : 'unknown',
+            },
+          ]
+        : []),
     ];
-  }, [selectedAttractions, startPoint, endPoint]);
+  }, [selectedAttractions, startPoint, endPoint, gpsStartPoint, gpsEndPoint]);
 
   useEffect(() => {
     if (selectedAttractions.length === 0) {
@@ -292,12 +312,55 @@ export function RouteScreen({ navigation }) {
     reorderSelectedAttractions([...selectedAttractions].reverse());
   };
 
+  const handleUseGpsPoint = async (target) => {
+    setGpsLoadingTarget(target);
+    try {
+      const position = await getCurrentGpsPosition();
+      const point = {
+        id: target === 'start' ? 'gps-start' : 'gps-end',
+        name: 'My location',
+        latitude: position.latitude,
+        longitude: position.longitude,
+        role: target,
+        isGps: true,
+      };
+
+      if (target === 'start') {
+        setGpsStartPoint(point);
+      } else {
+        setGpsEndPoint(point);
+      }
+    } catch (error) {
+      Alert.alert(
+        'Location unavailable',
+        error?.message || 'Could not get your current location.'
+      );
+    } finally {
+      setGpsLoadingTarget(null);
+    }
+  };
+
+  const handleClearGpsStart = () => {
+    setGpsStartPoint(null);
+  };
+
+  const handleClearGpsEnd = () => {
+    setGpsEndPoint(null);
+  };
+
   const handleGenerateRoute = async () => {
     setOpening(true);
     try {
+      const origin = gpsStartPoint
+        ? `${gpsStartPoint.latitude},${gpsStartPoint.longitude}`
+        : startAddress;
+      const destination = gpsEndPoint
+        ? `${gpsEndPoint.latitude},${gpsEndPoint.longitude}`
+        : endAddress;
+
       await openGoogleMapsRoute(selectedAttractions, {
-        origin: startAddress,
-        destination: endAddress,
+        origin,
+        destination,
         travelMode: settings.travelMode,
       });
     } catch (error) {
@@ -349,11 +412,13 @@ export function RouteScreen({ navigation }) {
   };
 
   const distanceOrigin = startPoint || selectedAttractions[0] || cityCoordinates || null;
-  const distanceOriginLabel = startPoint
-    ? 'start'
-    : selectedAttractions[0]
-      ? 'start stop'
-      : 'city center';
+  const distanceOriginLabel = gpsStartPoint
+    ? 'my location'
+    : startPoint
+      ? 'start'
+      : selectedAttractions[0]
+        ? 'start stop'
+        : 'city center';
   const canGenerate = selectedAttractions.length > 0;
   const canAddMorePlaces =
     Boolean(cityCoordinates) || attractions.length > 0;
@@ -362,6 +427,16 @@ export function RouteScreen({ navigation }) {
     selectedAttractions.length > 0
       ? selectedAttractions[selectedAttractions.length - 1]
       : null;
+  const startLabel = gpsStartPoint
+    ? `My location (${formatCoordinate(gpsStartPoint.latitude)}, ${formatCoordinate(gpsStartPoint.longitude)})`
+    : startAddress
+      ? startAddress
+      : firstStop?.name || 'First stop in list';
+  const endLabel = gpsEndPoint
+    ? `My location (${formatCoordinate(gpsEndPoint.latitude)}, ${formatCoordinate(gpsEndPoint.longitude)})`
+    : endAddress
+      ? endAddress
+      : lastStop?.name || 'Last stop in list';
   const routeTiming = useMemo(
     () =>
       estimateRouteTiming({
@@ -467,18 +542,64 @@ export function RouteScreen({ navigation }) {
         ) : null}
 
         <View style={styles.endpoints}>
-          <Text style={styles.endpointLabel}>Start stop</Text>
-          <Text style={styles.endpointValue}>
-            {startAddress
-              ? startAddress
-              : firstStop?.name || 'Pick a stop below'}
-          </Text>
+          <Text style={styles.endpointLabel}>Start</Text>
+          <Text style={styles.endpointValue}>{startLabel}</Text>
+          <View style={styles.gpsRow}>
+            <Button
+              mode={gpsStartPoint ? 'contained' : 'outlined'}
+              compact
+              icon="crosshairs-gps"
+              loading={gpsLoadingTarget === 'start'}
+              disabled={Boolean(gpsLoadingTarget)}
+              onPress={() => handleUseGpsPoint('start')}
+              buttonColor={gpsStartPoint ? colors.primary : undefined}
+              textColor={gpsStartPoint ? '#FFFFFF' : colors.primaryDark}
+              style={styles.gpsBtn}
+            >
+              {gpsStartPoint ? 'Refresh start GPS' : 'Start from my location'}
+            </Button>
+            {gpsStartPoint ? (
+              <Button
+                mode="text"
+                compact
+                onPress={handleClearGpsStart}
+                textColor={colors.error}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </View>
+
           <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
-            End stop
+            End
           </Text>
-          <Text style={styles.endpointValue}>
-            {endAddress ? endAddress : lastStop?.name || 'Pick a stop below'}
-          </Text>
+          <Text style={styles.endpointValue}>{endLabel}</Text>
+          <View style={styles.gpsRow}>
+            <Button
+              mode={gpsEndPoint ? 'contained' : 'outlined'}
+              compact
+              icon="crosshairs-gps"
+              loading={gpsLoadingTarget === 'end'}
+              disabled={Boolean(gpsLoadingTarget)}
+              onPress={() => handleUseGpsPoint('end')}
+              buttonColor={gpsEndPoint ? colors.primary : undefined}
+              textColor={gpsEndPoint ? '#FFFFFF' : colors.primaryDark}
+              style={styles.gpsBtn}
+            >
+              {gpsEndPoint ? 'Refresh end GPS' : 'End at my location'}
+            </Button>
+            {gpsEndPoint ? (
+              <Button
+                mode="text"
+                compact
+                onPress={handleClearGpsEnd}
+                textColor={colors.error}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </View>
+
           <Text style={[styles.endpointLabel, styles.endpointLabelSpaced]}>
             Transport
           </Text>
@@ -486,8 +607,8 @@ export function RouteScreen({ navigation }) {
             {formatTravelModeLabel(settings.travelMode)}
           </Text>
           <Text style={styles.endpointHint}>
-            First and last stops follow the list order. Use Reverse route to
-            flip the path. Optional hotel addresses still come from Settings.
+            GPS start/end use your current position (blue pin). Reverse flips
+            stop order only. Optional hotel addresses still come from Settings.
           </Text>
           <Button
             mode="text"
@@ -741,6 +862,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: spacing.sm,
+  },
+  gpsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  gpsBtn: {
+    borderRadius: radii.pill,
+    borderColor: colors.primary,
   },
   listToolbar: {
     marginBottom: spacing.sm,

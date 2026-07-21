@@ -12,25 +12,42 @@ module.exports = {
     resizeMode: 'contain',
     backgroundColor: '#5BA8DC',
   },
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'com.travelgo.app',
-    config: {
-      googleMapsApiKey: process.env.GOOGLE_PLACES_API_KEY,
-    },
-  },
   android: {
     adaptiveIcon: {
       backgroundColor: '#5BA8DC',
       foregroundImage: './assets/TravelGoIcon.png',
     },
     package: 'com.travelgo.app',
+    permissions: [
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION',
+    ],
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_PLACES_API_KEY,
       },
     },
   },
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: 'com.travelgo.app',
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription:
+        'Travel Go uses your location to start the route from where you are.',
+    },
+    config: {
+      googleMapsApiKey: process.env.GOOGLE_PLACES_API_KEY,
+    },
+  },
+  plugins: [
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Allow Travel Go to use your location to start the route from where you are.',
+      },
+    ],
+  ],
   web: {
     favicon: './assets/TravelGoIcon.png',
   },
