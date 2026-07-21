@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaceMap } from '../components/PlaceMap';
 import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { RouteActionsDock } from '../components/RouteActionsDock';
 import { useTravel } from '../context/TravelContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { geocodeCity } from '../services/geocodingService';
@@ -527,7 +528,11 @@ export function RouteScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text variant="headlineSmall" style={styles.title}>
           Your Route
         </Text>
@@ -740,71 +745,18 @@ export function RouteScreen({ navigation }) {
       </ScrollView>
 
       {canGenerate ? (
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={openSaveDialog}
-            buttonColor={colors.success}
-            textColor="#FFFFFF"
-            style={styles.primaryAction}
-            contentStyle={styles.actionContent}
-            icon="bookmark-plus-outline"
-            labelStyle={styles.actionLabel}
-          >
-            Save route
-          </Button>
-          <Button
-            mode="contained"
-            loading={optimizing}
-            disabled={optimizing || !routeStats?.canImprove}
-            onPress={handleOptimizeRoute}
-            buttonColor={colors.primary}
-            textColor="#FFFFFF"
-            style={styles.primaryAction}
-            contentStyle={styles.actionContent}
-            icon="sitemap"
-            labelStyle={styles.actionLabel}
-          >
-            Optimize stop order
-          </Button>
-          <Button
-            mode="contained"
-            loading={opening}
-            disabled={opening || sharing}
-            onPress={handleGenerateRoute}
-            buttonColor={colors.accent}
-            textColor="#FFFFFF"
-            style={styles.primaryAction}
-            contentStyle={styles.actionContent}
-            icon="map-marker-path"
-            labelStyle={styles.actionLabel}
-          >
-            Generate Google Maps Route
-          </Button>
-          <Button
-            mode="contained"
-            loading={sharing}
-            disabled={opening || sharing}
-            onPress={handleShareRoute}
-            buttonColor={colors.primary}
-            textColor="#FFFFFF"
-            style={styles.primaryAction}
-            contentStyle={styles.actionContent}
-            icon="share-variant"
-            labelStyle={styles.actionLabel}
-          >
-            Share Google Maps link
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleClearRoute}
-            textColor={colors.error}
-            style={styles.secondaryAction}
-            contentStyle={styles.actionContent}
-          >
-            Clear Route
-          </Button>
-        </View>
+        <RouteActionsDock
+          stopCount={selectedAttractions.length}
+          opening={opening}
+          sharing={sharing}
+          optimizing={optimizing}
+          canOptimize={Boolean(routeStats?.canImprove)}
+          onOpenMaps={handleGenerateRoute}
+          onShare={handleShareRoute}
+          onSave={openSaveDialog}
+          onOptimize={handleOptimizeRoute}
+          onClear={handleClearRoute}
+        />
       ) : null}
 
       <Portal>
@@ -849,6 +801,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,
@@ -984,26 +939,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textMuted,
     textAlign: 'center',
-  },
-  actions: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  primaryAction: {
-    borderRadius: radii.pill,
-  },
-  secondaryAction: {
-    borderRadius: radii.pill,
-    borderColor: colors.error,
-  },
-  actionContent: {
-    paddingVertical: spacing.xs,
-  },
-  actionLabel: {
-    fontWeight: '700',
   },
   dialog: {
     borderRadius: radii.lg,
