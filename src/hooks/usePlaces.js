@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { geocodeCity } from '../services/geocodingService';
 import { searchNearbyAttractions } from '../services/placesService';
+import { enrichAttractionsWithImages } from '../services/wikiPhotoService';
 import { useTravel } from '../context/TravelContext';
 import { resolvePlaceTypes } from '../constants/placeCategories';
 
@@ -12,11 +13,38 @@ export function usePlaces() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const publishWithImages = useCallback(
+    async (city, attractions) => {
+      const copies = (attractions || []).map((item) => ({ ...item }));
+
+      // Wait for first screenful so covers are visible when Attractions opens.
+      const firstBatch = await enrichAttractionsWithImages(copies, city?.name || null, {
+        concurrency: 4,
+        limit: 12,
+      });
+      setSearchResult(city, firstBatch);
+
+      // Fill the rest in the background.
+      enrichAttractionsWithImages(firstBatch, city?.name || null, {
+        concurrency: 4,
+        limit: 40,
+      })
+        .then((full) => {
+          setSearchResult(city, full);
+        })
+        .catch((err) => {
+          console.warn('Background image enrichment failed:', err?.message || err);
+        });
+
+      return firstBatch;
+    },
+    [setSearchResult]
+  );
+
   const searchCityAttractions = useCallback(
     async (cityName, overrides = {}) => {
       setLoading(true);
       setError(null);
-      // New city search always starts a fresh route.
       clearRoute();
 
       try {
@@ -37,8 +65,10 @@ export function usePlaces() {
           }
         );
 
-        setSearchResult(city, attractions);
-        return { city, attractions };
+        return {
+          city,
+          attractions: await publishWithImages(city, attractions),
+        };
       } catch (err) {
         const message =
           err?.response?.data?.error?.message ||
@@ -51,7 +81,7 @@ export function usePlaces() {
       }
     },
     [
-      setSearchResult,
+      publishWithImages,
       clearRoute,
       settings.searchRadiusMeters,
       settings.selectedCategories,
@@ -78,16 +108,13 @@ export function usePlaces() {
           radius,
           includedTypes: resolvePlaceTypes(categories),
         });
-        setSearchResult(
-          {
-            id: `city_${cityName || 'refresh'}`,
-            name: cityName || 'Selected city',
-            latitude: cityCoordinates.latitude,
-            longitude: cityCoordinates.longitude,
-          },
-          attractions
-        );
-        return attractions;
+        const city = {
+          id: `city_${cityName || 'refresh'}`,
+          name: cityName || 'Selected city',
+          latitude: cityCoordinates.latitude,
+          longitude: cityCoordinates.longitude,
+        };
+        return publishWithImages(city, attractions);
       } catch (err) {
         const message =
           err?.response?.data?.error?.message ||
@@ -100,7 +127,7 @@ export function usePlaces() {
       }
     },
     [
-      setSearchResult,
+      publishWithImages,
       settings.searchRadiusMeters,
       settings.selectedCategories,
     ]

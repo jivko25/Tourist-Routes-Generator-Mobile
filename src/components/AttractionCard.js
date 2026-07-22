@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  ImageBackground,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
 import { Button, Text } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from './GlassCard';
+import { PlaceCover } from './PlaceCover';
+import { usePlaceImage } from '../hooks/usePlaceImage';
 import {
   formatDistanceKm,
   haversineDistanceKm,
@@ -17,7 +17,7 @@ import { formatPlaceVisitDuration } from '../utils/visitDuration';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
- * Modern photo card with glass overlay and clear selected state.
+ * Place card with Wikipedia/cover image when available.
  */
 export function AttractionCard({
   attraction,
@@ -29,7 +29,10 @@ export function AttractionCard({
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const [toggling, setToggling] = useState(false);
-  const coverPhoto = attraction.photos?.[0]?.url;
+  const { imageUrl, loading: imageLoading } = usePlaceImage(
+    attraction,
+    cityName
+  );
 
   const distanceLabel = useMemo(() => {
     if (
@@ -83,72 +86,66 @@ export function AttractionCard({
         onPress={() => onPressDetails?.(attraction)}
         style={[styles.card, selected && styles.cardSelected]}
       >
-        <ImageBackground
-          source={coverPhoto ? { uri: coverPhoto } : undefined}
-          style={styles.image}
-          imageStyle={styles.imageInner}
+        <PlaceCover
+          place={attraction}
+          imageUrl={imageUrl}
+          loading={imageLoading}
+          height={188}
+          style={styles.cover}
         >
-          {!coverPhoto ? <View style={styles.imageFallback} /> : null}
-          <LinearGradient
-            colors={
-              selected
-                ? ['rgba(22,163,74,0.28)', 'rgba(15,23,42,0.55)']
-                : ['transparent', 'rgba(15,23,42,0.4)']
-            }
-            style={StyleSheet.absoluteFill}
-          />
-
-          <View style={styles.topRow}>
-            <View style={styles.topLeft}>
-              {typeof attraction.rating === 'number' ? (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>
-                    ★ {attraction.rating.toFixed(1)}
+          <View style={styles.coverBody}>
+            <View style={styles.topRow}>
+              <View style={styles.topLeft}>
+                {typeof attraction.rating === 'number' ? (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>
+                      {attraction.rating.toFixed(1)}
+                    </Text>
+                  </View>
+                ) : null}
+                {distanceLabel ? (
+                  <View style={[styles.pill, styles.pillBlue]}>
+                    <Text style={[styles.pillText, styles.pillBlueText]}>
+                      {distanceLabel}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={[styles.pill, styles.pillOrange]}>
+                  <Text style={[styles.pillText, styles.pillOrangeText]}>
+                    ~{visitLabel}
                   </Text>
                 </View>
-              ) : null}
-              {distanceLabel ? (
-                <View style={[styles.pill, styles.pillBlue]}>
-                  <Text style={[styles.pillText, styles.pillBlueText]}>
-                    {distanceLabel}
-                  </Text>
-                </View>
-              ) : null}
-              <View style={[styles.pill, styles.pillOrange]}>
-                <Text style={[styles.pillText, styles.pillOrangeText]}>
-                  ~{visitLabel}
-                </Text>
               </View>
+
+              {selected ? (
+                <View style={styles.selectedBadge}>
+                  <Text style={styles.selectedBadgeText}>Added</Text>
+                </View>
+              ) : null}
             </View>
 
-            {selected ? (
-              <View style={styles.selectedBadge}>
-                <Text style={styles.selectedBadgeText}>✓ Added</Text>
-              </View>
-            ) : null}
-          </View>
-
-          <GlassCard
-            dark
-            intensity={28}
-            tint="dark"
-            style={styles.glass}
-            contentStyle={styles.glassContent}
-          >
-            <Text style={styles.name} numberOfLines={2}>
-              {attraction.name}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {attraction.category || 'Tourist Attraction'}
-              {cityName ? ` · ${cityName}` : ''}
-            </Text>
-            {attraction.description ? (
-              <Text style={styles.description} numberOfLines={2}>
-                {attraction.description}
+            <GlassCard
+              dark
+              intensity={28}
+              tint="dark"
+              style={styles.glass}
+              contentStyle={styles.glassContent}
+            >
+              <Text style={styles.name} numberOfLines={2}>
+                {attraction.name}
               </Text>
-            ) : null}
-          </GlassCard>
-        </ImageBackground>
+              <Text style={styles.meta} numberOfLines={1}>
+                {attraction.category || 'Tourist Attraction'}
+                {cityName ? ` · ${cityName}` : ''}
+              </Text>
+              {attraction.description ? (
+                <Text style={styles.description} numberOfLines={2}>
+                  {attraction.description}
+                </Text>
+              ) : null}
+            </GlassCard>
+          </View>
+        </PlaceCover>
       </Pressable>
 
       <View style={styles.actions}>
@@ -173,7 +170,7 @@ export function AttractionCard({
           labelStyle={styles.actionLabel}
           icon={toggling ? undefined : selected ? 'check-circle' : 'plus'}
         >
-          {toggling ? 'Updating…' : selected ? 'Added' : 'Add'}
+          {toggling ? 'Updating...' : selected ? 'Added' : 'Add'}
         </Button>
       </View>
     </Animated.View>
@@ -199,17 +196,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
-  image: {
-    height: 240,
-    justifyContent: 'space-between',
-    padding: spacing.md,
-  },
-  imageInner: {
+  cover: {
     borderRadius: radii.lg - 2,
   },
-  imageFallback: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#C7D7EE',
+  coverBody: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: spacing.md,
   },
   topRow: {
     flexDirection: 'row',

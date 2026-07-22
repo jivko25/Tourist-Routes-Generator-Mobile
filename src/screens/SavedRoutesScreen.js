@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   View,
@@ -12,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTravel } from '../context/TravelContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { SavedRouteCover } from '../components/SavedRouteCover';
 import { shareGoogleMapsRoute } from '../services/mapsService';
 import { formatTravelModeLabel } from '../utils/config';
 import { colors, radii, spacing } from '../theme/colors';
@@ -92,7 +92,7 @@ export function SavedRoutesScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const cover = item.attractions?.[0]?.photos?.[0]?.url;
+    const coverPlace = item.attractions?.[0] || null;
     const stopNames = item.attractions
       .slice(0, 2)
       .map((place) => place.name)
@@ -100,11 +100,12 @@ export function SavedRoutesScreen({ navigation }) {
 
     return (
       <Pressable style={styles.card} onPress={() => handleOpen(item)}>
-        {cover ? (
-          <Image source={{ uri: cover }} style={styles.cover} />
-        ) : (
-          <View style={[styles.cover, styles.coverFallback]} />
-        )}
+        <SavedRouteCover
+          place={coverPlace}
+          cityName={item.cityName}
+          height={112}
+          style={styles.cover}
+        />
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle} numberOfLines={2}>
             {item.name}
@@ -261,11 +262,8 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: '100%',
-    height: 140,
-    backgroundColor: colors.surfaceMuted,
-  },
-  coverFallback: {
-    backgroundColor: '#C7D7EE',
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
   },
   cardBody: {
     padding: spacing.md,

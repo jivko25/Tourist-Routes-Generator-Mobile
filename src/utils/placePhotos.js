@@ -4,9 +4,17 @@ import {
 } from './config';
 
 /**
- * Builds a Google Places photo media URL from a photo resource name.
+ * Places Photo helpers.
  *
- * @param {string} photoName - e.g. places/ChIJ.../photos/AW...
+ * IMPORTANT: Calling the Places Photo media endpoint bills the
+ * "Places Photo" SKU (~1,000 free/month). Travel Go no longer auto-loads
+ * photo media. Use PlaceCover + Google Maps photo links instead.
+ */
+
+/**
+ * Opt-in only. Prefer PlaceCover in UI.
+ *
+ * @param {string} photoName
  * @param {{ maxWidthPx?: number, maxHeightPx?: number }} [options]
  * @returns {string}
  */
@@ -23,13 +31,17 @@ export function buildPlacePhotoUrl(photoName, options = {}) {
 }
 
 /**
- * Maps Places API photo objects into app-friendly photo models.
+ * Does not build billable media URLs (url stays null).
  *
  * @param {Array<{ name?: string, widthPx?: number, heightPx?: number }>} [photos]
- * @param {number} [limit=8]
+ * @param {number} [limit=0]
  * @returns {import('../types/attraction').AttractionPhoto[]}
  */
-export function mapPlacePhotos(photos = [], limit = 8) {
+export function mapPlacePhotos(photos = [], limit = 0) {
+  if (!limit || limit <= 0) {
+    return [];
+  }
+
   return photos
     .filter((photo) => photo?.name)
     .slice(0, limit)
@@ -37,9 +49,6 @@ export function mapPlacePhotos(photos = [], limit = 8) {
       name: photo.name,
       widthPx: photo.widthPx,
       heightPx: photo.heightPx,
-      url: buildPlacePhotoUrl(photo.name, {
-        maxWidthPx: 900,
-        maxHeightPx: 900,
-      }),
+      url: null,
     }));
 }

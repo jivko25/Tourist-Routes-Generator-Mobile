@@ -87,6 +87,7 @@ export function createAttraction(data) {
     googlePlaceId: data.googlePlaceId || '',
     description: data.description || '',
     photos: Array.isArray(data.photos) ? data.photos : [],
+    coverImageUrl: data.coverImageUrl || null,
     rating: typeof data.rating === 'number' ? data.rating : null,
     userRatingCount:
       typeof data.userRatingCount === 'number' ? data.userRatingCount : null,

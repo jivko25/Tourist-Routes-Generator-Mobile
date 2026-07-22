@@ -197,6 +197,9 @@ export function AttractionsScreen({ navigation }) {
 
       <FlatList
         data={filteredAttractions}
+        extraData={filteredAttractions
+          .map((item) => item.coverImageUrl || item.photos?.[0]?.url || '')
+          .join('|')}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.list,

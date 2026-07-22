@@ -9,17 +9,15 @@ import {
   PLACES_NEARBY_MAX_RADIUS_METERS,
   PLACES_SOFT_RESULT_LIMIT,
 } from '../utils/config';
-import { mapPlacePhotos } from '../utils/placePhotos';
 import { haversineDistanceKm } from '../utils/routeOptimization';
 import { getPopularityScore } from '../utils/attractionSort';
 import { mapPriceRange } from '../utils/placePricing';
 import { mapOpeningHoursFromPlace } from '../utils/openingHours';
 
-const PLACE_FIELD_MASK = [
+const PLACE_TEXT_FIELD_MASK = [
   'places.displayName',
   'places.location',
   'places.id',
-  'places.photos',
   'places.editorialSummary',
   'places.primaryType',
   'places.primaryTypeDisplayName',
@@ -29,11 +27,23 @@ const PLACE_FIELD_MASK = [
   'nextPageToken',
 ].join(',');
 
+/** Nearby Search does not support nextPageToken in the field mask. */
+const PLACE_NEARBY_FIELD_MASK = [
+  'places.displayName',
+  'places.location',
+  'places.id',
+  'places.editorialSummary',
+  'places.primaryType',
+  'places.primaryTypeDisplayName',
+  'places.rating',
+  'places.userRatingCount',
+  'places.currentOpeningHours',
+].join(',');
+
 const PLACE_DETAILS_FIELD_MASK = [
   'id',
   'displayName',
   'location',
-  'photos',
   'editorialSummary',
   'primaryType',
   'primaryTypeDisplayName',
@@ -166,7 +176,7 @@ function mapPlaceToAttraction(place, placeType = '') {
       place.primaryTypeDisplayName?.text ||
       (placeType ? placeType.replace(/_/g, ' ') : 'Place'),
     description: place.editorialSummary?.text || '',
-    photos: mapPlacePhotos(place.photos, 8),
+    photos: [],
     rating: place.rating,
     userRatingCount: place.userRatingCount,
     primaryType: place.primaryType || placeType || null,
@@ -246,7 +256,7 @@ async function searchNearbyByType(center, placeType, options) {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': options.apiKey,
-        'X-Goog-FieldMask': PLACE_FIELD_MASK,
+        'X-Goog-FieldMask': PLACE_NEARBY_FIELD_MASK,
       },
       timeout: 20000,
     }
@@ -299,7 +309,7 @@ async function searchTextByTypePaginated(center, placeType, options) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': options.apiKey,
-          'X-Goog-FieldMask': PLACE_FIELD_MASK,
+          'X-Goog-FieldMask': PLACE_TEXT_FIELD_MASK,
         },
         timeout: 25000,
       }
@@ -343,7 +353,6 @@ function mergeAttractions(groups) {
     const richer =
       (attraction.description?.length || 0) >
         (existing.description?.length || 0) ||
-      (attraction.photos?.length || 0) > (existing.photos?.length || 0) ||
       (attraction.userRatingCount || 0) > (existing.userRatingCount || 0)
         ? attraction
         : existing;
@@ -406,7 +415,10 @@ export async function searchNearbyAttractions(center, options = {}) {
             request.catch((error) => {
               console.warn(
                 `Place search failed for type "${placeType}":`,
-                error?.response?.data?.error?.message || error?.message
+                error?.response?.data?.error?.message ||
+                  error?.response?.data?.error?.status ||
+                  error?.message,
+                JSON.stringify(error?.response?.data?.error?.details || null)
               );
               return [];
             })

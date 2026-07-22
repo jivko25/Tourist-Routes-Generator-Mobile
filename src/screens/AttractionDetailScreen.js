@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Dimensions,
   Linking,
   ScrollView,
   StyleSheet,
@@ -8,7 +7,8 @@ import {
 } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PhotoGallery } from '../components/PhotoGallery';
+import { PlaceCover } from '../components/PlaceCover';
+import { usePlaceImage } from '../hooks/usePlaceImage';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlacePricingCard } from '../components/PlacePricingCard';
 import { OpeningHoursSection } from '../components/OpeningHoursSection';
@@ -26,7 +26,6 @@ import {
 } from '../utils/visitDuration';
 import { colors, radii, spacing } from '../theme/colors';
 
-const GALLERY_WIDTH = Dimensions.get('window').width - spacing.lg * 2;
 
 export function AttractionDetailScreen({ route, navigation }) {
   const { attractionId } = route.params || {};
@@ -76,6 +75,10 @@ export function AttractionDetailScreen({ route, navigation }) {
   const selected = attraction
     ? isAttractionSelected(attraction.id)
     : false;
+  const { imageUrl, loading: imageLoading } = usePlaceImage(
+    attraction,
+    searchedCity
+  );
 
   useEffect(() => {
     setToggling(false);
@@ -173,12 +176,36 @@ export function AttractionDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <PhotoGallery
-          photos={attraction.photos}
-          width={GALLERY_WIDTH}
-          height={240}
-        />
-
+        <PlaceCover
+          place={attraction}
+          imageUrl={imageUrl}
+          loading={imageLoading}
+          height={220}
+          style={styles.hero}
+        >
+          <View style={styles.heroActions}>
+            {attraction.googleMapsLinks?.photosUri ||
+            attraction.googleMapsUri ? (
+              <Button
+                mode="contained"
+                compact
+                icon="image-multiple-outline"
+                buttonColor="rgba(15,23,42,0.72)"
+                textColor="#FFFFFF"
+                onPress={() =>
+                  Linking.openURL(
+                    attraction.googleMapsLinks?.photosUri ||
+                      attraction.googleMapsUri
+                  )
+                }
+                style={styles.heroBtn}
+                labelStyle={styles.heroBtnLabel}
+              >
+                Photos on Google Maps
+              </Button>
+            ) : null}
+          </View>
+        </PlaceCover>
         <View style={styles.header}>
           <Text variant="headlineSmall" style={styles.title}>
             {attraction.name}
@@ -317,6 +344,23 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xl,
+  },
+  hero: {
+    marginBottom: spacing.sm,
+  },
+  heroActions: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.md,
+    alignItems: 'flex-start',
+  },
+  heroBtn: {
+    borderRadius: radii.pill,
+  },
+  heroBtnLabel: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   header: {
     marginTop: spacing.lg,
