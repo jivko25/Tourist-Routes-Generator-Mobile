@@ -8,6 +8,7 @@ import {
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlaceCover } from '../components/PlaceCover';
+import { PhotoGallery } from '../components/PhotoGallery';
 import { usePlaceImage } from '../hooks/usePlaceImage';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlacePricingCard } from '../components/PlacePricingCard';
@@ -56,8 +57,12 @@ export function AttractionDetailScreen({ route, navigation }) {
     return {
       ...baseAttraction,
       ...details,
+      // Keep Pexels gallery from list enrichment; Places details has no media URLs.
       photos:
-        details.photos?.length > 0 ? details.photos : baseAttraction.photos,
+        baseAttraction.photos?.length > 0
+          ? baseAttraction.photos
+          : details.photos || [],
+      coverImageUrl: baseAttraction.coverImageUrl || details.coverImageUrl,
       description: details.description || baseAttraction.description,
       reviews: details.reviews?.length
         ? details.reviews
@@ -75,10 +80,11 @@ export function AttractionDetailScreen({ route, navigation }) {
   const selected = attraction
     ? isAttractionSelected(attraction.id)
     : false;
-  const { imageUrl, loading: imageLoading } = usePlaceImage(
-    attraction,
-    searchedCity
-  );
+  const {
+    imageUrl,
+    photos: galleryPhotos,
+    loading: imageLoading,
+  } = usePlaceImage(attraction, searchedCity);
 
   useEffect(() => {
     setToggling(false);
@@ -167,6 +173,11 @@ export function AttractionDetailScreen({ route, navigation }) {
     (attraction.reviews?.length || 0) > 0 ||
     detailsLoading;
 
+  const displayPhotos =
+    galleryPhotos?.length > 0
+      ? galleryPhotos
+      : attraction.photos?.filter((p) => p?.url) || [];
+
   const handleToggle = () => {
     if (toggling) return;
     setToggling(true);
@@ -176,36 +187,22 @@ export function AttractionDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <PlaceCover
-          place={attraction}
-          imageUrl={imageUrl}
-          loading={imageLoading}
-          height={220}
-          style={styles.hero}
-        >
-          <View style={styles.heroActions}>
-            {attraction.googleMapsLinks?.photosUri ||
-            attraction.googleMapsUri ? (
-              <Button
-                mode="contained"
-                compact
-                icon="image-multiple-outline"
-                buttonColor="rgba(15,23,42,0.72)"
-                textColor="#FFFFFF"
-                onPress={() =>
-                  Linking.openURL(
-                    attraction.googleMapsLinks?.photosUri ||
-                      attraction.googleMapsUri
-                  )
-                }
-                style={styles.heroBtn}
-                labelStyle={styles.heroBtnLabel}
-              >
-                Photos on Google Maps
-              </Button>
-            ) : null}
-          </View>
-        </PlaceCover>
+        {displayPhotos.length > 1 ? (
+          <PhotoGallery
+            photos={displayPhotos}
+            height={220}
+            emptyLabel="No photos available"
+          />
+        ) : (
+          <PlaceCover
+            place={attraction}
+            imageUrl={displayPhotos[0]?.url || imageUrl}
+            loading={imageLoading}
+            height={220}
+            style={styles.hero}
+          />
+        )}
+
         <View style={styles.header}>
           <Text variant="headlineSmall" style={styles.title}>
             {attraction.name}
@@ -347,20 +344,6 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: spacing.sm,
-  },
-  heroActions: {
-    position: 'absolute',
-    left: spacing.md,
-    right: spacing.md,
-    bottom: spacing.md,
-    alignItems: 'flex-start',
-  },
-  heroBtn: {
-    borderRadius: radii.pill,
-  },
-  heroBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   header: {
     marginTop: spacing.lg,

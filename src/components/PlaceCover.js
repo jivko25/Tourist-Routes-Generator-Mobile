@@ -10,7 +10,7 @@ import { radii } from '../theme/colors';
 import { getPlaceCoverPreset } from '../utils/placeCover';
 
 /**
- * Place cover image. Prefers Wikipedia/cover URL; falls back to category gradient.
+ * Place cover image. Prefers Pexels/cover URL; falls back to category gradient.
  * No vector icons here (avoids invalid-glyph Text node crashes).
  */
 export function PlaceCover({

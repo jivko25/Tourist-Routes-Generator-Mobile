@@ -1,27 +1,36 @@
 import { useEffect, useState } from 'react';
-import { resolvePlaceImage } from '../services/wikiPhotoService';
+import { resolvePlacePhotos } from '../services/pexelsPhotoService';
 
 /**
- * Resolves a free cover image for a place (Wikipedia), with cache.
+ * Resolves Pexels cover + gallery photos for a place (with cache).
+ *
+ * @returns {{ imageUrl: string|null, photos: import('../types/attraction').AttractionPhoto[], loading: boolean }}
  */
 export function usePlaceImage(place, cityName = null) {
-  const existing =
+  const existingPhotos = Array.isArray(place?.photos)
+    ? place.photos.filter((photo) => typeof photo?.url === 'string' && photo.url)
+    : [];
+  const existingCover =
     (typeof place?.coverImageUrl === 'string' && place.coverImageUrl) ||
-    place?.photos?.find((photo) => typeof photo?.url === 'string' && photo.url)
-      ?.url ||
+    existingPhotos[0]?.url ||
     null;
 
-  const [imageUrl, setImageUrl] = useState(existing);
-  const [loading, setLoading] = useState(!existing && Boolean(place?.name));
+  const [photos, setPhotos] = useState(existingPhotos);
+  const [imageUrl, setImageUrl] = useState(existingCover);
+  const [loading, setLoading] = useState(
+    existingPhotos.length < 2 && Boolean(place?.name)
+  );
 
   useEffect(() => {
-    if (existing) {
-      setImageUrl(existing);
+    if (existingPhotos.length >= 2) {
+      setPhotos(existingPhotos);
+      setImageUrl(existingCover);
       setLoading(false);
       return undefined;
     }
 
     if (!place?.name) {
+      setPhotos([]);
       setImageUrl(null);
       setLoading(false);
       return undefined;
@@ -30,15 +39,19 @@ export function usePlaceImage(place, cityName = null) {
     let cancelled = false;
     setLoading(true);
 
-    resolvePlaceImage(place, cityName)
-      .then((url) => {
-        if (!cancelled) {
-          setImageUrl(url);
-        }
+    resolvePlacePhotos(place, cityName)
+      .then((resolved) => {
+        if (cancelled) return;
+        const next = resolved?.length ? resolved : existingPhotos;
+        setPhotos(next);
+        setImageUrl(next[0]?.url || existingCover || null);
       })
       .catch((error) => {
         console.warn('usePlaceImage failed:', place?.name, error?.message || error);
-        if (!cancelled) setImageUrl(null);
+        if (!cancelled) {
+          setPhotos(existingPhotos);
+          setImageUrl(existingCover);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,7 +60,7 @@ export function usePlaceImage(place, cityName = null) {
     return () => {
       cancelled = true;
     };
-  }, [place?.id, place?.name, cityName, existing]);
+  }, [place?.id, place?.name, cityName, existingCover, existingPhotos.length]);
 
-  return { imageUrl, loading };
+  return { imageUrl, photos, loading };
 }

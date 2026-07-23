@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { geocodeCity } from '../services/geocodingService';
 import { searchNearbyAttractions } from '../services/placesService';
-import { enrichAttractionsWithImages } from '../services/wikiPhotoService';
+import { enrichAttractionsWithImages } from '../services/pexelsPhotoService';
 import { useTravel } from '../context/TravelContext';
 import { resolvePlaceTypes } from '../constants/placeCategories';
 
@@ -19,14 +19,14 @@ export function usePlaces() {
 
       // Wait for first screenful so covers are visible when Attractions opens.
       const firstBatch = await enrichAttractionsWithImages(copies, city?.name || null, {
-        concurrency: 4,
+        concurrency: 3,
         limit: 12,
       });
       setSearchResult(city, firstBatch);
 
       // Fill the rest in the background.
       enrichAttractionsWithImages(firstBatch, city?.name || null, {
-        concurrency: 4,
+        concurrency: 3,
         limit: 40,
       })
         .then((full) => {

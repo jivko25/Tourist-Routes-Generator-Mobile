@@ -16,6 +16,22 @@ export function getGooglePlacesApiKey() {
   return key;
 }
 
+/**
+ * Pexels API key for place cover / gallery photos.
+ * Free tier: ~200 requests/hour, 20k/month. Attribution required.
+ */
+export function getPexelsApiKey() {
+  const key = Constants.expoConfig?.extra?.pexelsApiKey;
+
+  if (!key) {
+    throw new Error(
+      'PEXELS_API_KEY is missing. Add it to your .env file and restart Expo.'
+    );
+  }
+
+  return key;
+}
+
 export const PLACES_API_BASE_URL = 'https://places.googleapis.com/v1';
 export const ROUTES_API_BASE_URL = 'https://routes.googleapis.com';
 export const GEOCODING_API_BASE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';

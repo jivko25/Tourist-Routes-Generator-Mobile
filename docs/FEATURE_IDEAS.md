@@ -12,12 +12,16 @@
 - [x] **5. GPS старт/край** — начало и край от текуща локация (син пин)
 - [x] **6. Офлайн маршрут** — запазени данни достъпни без интернет
 - [ ] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
+- [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
+- [ ] **9. Проследяване на пътуването** — „Start trip“; при достигане на спирка (гео) → push с поздравление / следваща точка
 
 ## Бележки
 
 - #7: само deep links / affiliate с ясно означение; без scraping на цени.
 - #6: AsyncStorage + NetInfo — преглед на saved routes офлайн; нови търсения/Maps directions изискват интернет. Пълни offline map tiles не са част от Google Maps SDK в Expo.
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
+- #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
+- #9: реалистично с `expo-location` geofencing / background location + `expo-notifications`. Нужни: foreground+background permission, battery-friendly radius (~50–100 m), дедуп на нотификации per stop. Работи най-добре когато trip е „активен“; iOS е по-строг за background.
 
 ## История
 
@@ -30,3 +34,5 @@
 | 2026-07-21 | #5 GPS старт/край | Готово — Start/End from my location; син пин за Me |
 | 2026-07-21 | #6 Офлайн маршрут | Готово — преглед на saved; блок на нови търсения; graceful RouteScreen |
 | 2026-07-22 | #3 Сподели маршрут | Готово — Share Google Maps link (Route + Saved) |
+| 2026-07-22 | #8+#9 backlog | Добавени — photos upgrade + live trip geofence pushes |
+| 2026-07-23 | #8 По-добри снимки | Готово — Pexels API, галерия с няколко снимки + attribution |

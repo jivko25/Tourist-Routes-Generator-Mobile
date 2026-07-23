@@ -53,6 +53,7 @@ module.exports = {
   },
   extra: {
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+    pexelsApiKey: process.env.PEXELS_API_KEY,
     eas: {
       projectId: '223672ff-5c6c-410e-a7d2-733b07881c13',
     },

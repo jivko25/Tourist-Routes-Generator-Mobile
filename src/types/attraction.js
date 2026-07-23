@@ -13,10 +13,13 @@
 
 /**
  * @typedef {Object} AttractionPhoto
- * @property {string} name - Places API photo resource name
+ * @property {string} name - Photo id / resource name
  * @property {string} url - Ready-to-render media URL
  * @property {number} [widthPx]
  * @property {number} [heightPx]
+ * @property {string|null} [photographer]
+ * @property {string|null} [photographerUrl]
+ * @property {string|null} [pexelsUrl]
  */
 
 /**
