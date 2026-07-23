@@ -12,6 +12,7 @@ import { PhotoGallery } from '../components/PhotoGallery';
 import { usePlaceImage } from '../hooks/usePlaceImage';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlacePricingCard } from '../components/PlacePricingCard';
+import { GetYourGuideCard } from '../components/GetYourGuideCard';
 import { OpeningHoursSection } from '../components/OpeningHoursSection';
 import { ReviewsList } from '../components/ReviewsList';
 import { useTravel } from '../context/TravelContext';
@@ -166,8 +167,8 @@ export function AttractionDetailScreen({ route, navigation }) {
   const foodPlace = isFoodPlace(attraction);
   const ticketedPlace = isTicketedPlace(attraction);
   const hasPricing = Boolean(getPricingDisplay(attraction));
-  const showPricing =
-    foodPlace || ticketedPlace || hasPricing || detailsLoading;
+  const showFoodPricing = foodPlace && (hasPricing || detailsLoading);
+  const showGetYourGuide = ticketedPlace && !foodPlace;
   const showReviews =
     foodPlace ||
     (attraction.reviews?.length || 0) > 0 ||
@@ -232,10 +233,22 @@ export function AttractionDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {showPricing ? (
+        {showGetYourGuide ? (
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              {foodPlace ? 'Prices' : 'Tickets & prices'}
+              Tours & tickets
+            </Text>
+            <GetYourGuideCard
+              place={attraction}
+              cityName={searchedCity}
+            />
+          </View>
+        ) : null}
+
+        {showFoodPricing ? (
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Prices
             </Text>
             <PlacePricingCard place={attraction} loading={detailsLoading} />
           </View>

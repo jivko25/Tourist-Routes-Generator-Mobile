@@ -11,13 +11,13 @@
 - [x] **4. Първа и последна спирка** — reverse на маршрута (+ START/END badges по реда)
 - [x] **5. GPS старт/край** — начало и край от текуща локация (син пин)
 - [x] **6. Офлайн маршрут** — запазени данни достъпни без интернет
-- [ ] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
+- [x] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
 - [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
 - [ ] **9. Проследяване на пътуването** — „Start trip“; при достигане на спирка (гео) → push с поздравление / следваща точка
 
 ## Бележки
 
-- #7: само deep links / affiliate с ясно означение; без scraping на цени.
+- #7: GetYourGuide deep links с `partner_id` + disclosure; без scraping на цени. Place search: tickets / skip-the-line / tours / activities.
 - #6: AsyncStorage + NetInfo — преглед на saved routes офлайн; нови търсения/Maps directions изискват интернет. Пълни offline map tiles не са част от Google Maps SDK в Expo.
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
 - #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
@@ -36,3 +36,4 @@
 | 2026-07-22 | #3 Сподели маршрут | Готово — Share Google Maps link (Route + Saved) |
 | 2026-07-22 | #8+#9 backlog | Добавени — photos upgrade + live trip geofence pushes |
 | 2026-07-23 | #8 По-добри снимки | Готово — Pexels API, галерия с няколко снимки + attribution |
+| 2026-07-23 | #7 Партньорски билети | Готово — GetYourGuide affiliate deep links + disclosure |

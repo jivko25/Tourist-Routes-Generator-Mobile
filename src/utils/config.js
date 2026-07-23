@@ -32,6 +32,15 @@ export function getPexelsApiKey() {
   return key;
 }
 
+/**
+ * GetYourGuide affiliate partner / cookie ID.
+ * Used as partner_id on deep links. Optional — links still work without it,
+ * but commissions require a valid partner id from the Partner Portal.
+ */
+export function getGetYourGuidePartnerId() {
+  return Constants.expoConfig?.extra?.getYourGuidePartnerId || '';
+}
+
 export const PLACES_API_BASE_URL = 'https://places.googleapis.com/v1';
 export const ROUTES_API_BASE_URL = 'https://routes.googleapis.com';
 export const GEOCODING_API_BASE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
