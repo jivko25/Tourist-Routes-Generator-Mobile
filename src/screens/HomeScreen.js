@@ -134,9 +134,7 @@ export function HomeScreen({ navigation }) {
                   selectedAttractions={selectedAttractions}
                   searchedCity={searchedCity}
                   settings={settings}
-                  onContinue={() =>
-                    navigation.navigate('MainTabs', { screen: 'RouteTab' })
-                  }
+                  onContinue={() => navigation.navigate('Route')}
                   onClear={clearRoute}
                 />
               ) : null}

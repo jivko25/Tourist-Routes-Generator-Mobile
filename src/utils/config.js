@@ -41,6 +41,17 @@ export function getGetYourGuidePartnerId() {
   return Constants.expoConfig?.extra?.getYourGuidePartnerId || '';
 }
 
+/**
+ * Travel AI chat backend (Vercel).
+ * Defaults to production server if env is missing (dev convenience).
+ */
+export function getTravelApiBaseUrl() {
+  const fromExtra = Constants.expoConfig?.extra?.travelApiBaseUrl;
+  const trimmed =
+    typeof fromExtra === 'string' ? fromExtra.trim().replace(/\/$/, '') : '';
+  return trimmed || 'https://tourist-routes-generator-server.vercel.app';
+}
+
 export const PLACES_API_BASE_URL = 'https://places.googleapis.com/v1';
 export const ROUTES_API_BASE_URL = 'https://routes.googleapis.com';
 export const GEOCODING_API_BASE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';

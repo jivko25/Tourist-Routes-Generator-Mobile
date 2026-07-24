@@ -55,6 +55,10 @@ module.exports = {
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
     pexelsApiKey: process.env.PEXELS_API_KEY,
     getYourGuidePartnerId: process.env.GETYOURGUIDE_PARTNER_ID,
+    travelApiBaseUrl:
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      process.env.TRAVEL_API_BASE_URL ||
+      'https://tourist-routes-generator-server.vercel.app',
     eas: {
       projectId: '223672ff-5c6c-410e-a7d2-733b07881c13',
     },

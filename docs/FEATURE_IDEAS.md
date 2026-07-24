@@ -14,6 +14,7 @@
 - [x] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
 - [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
 - [ ] **9. Проследяване на пътуването** — „Start trip“; при достигане на спирка (гео) → push с поздравление / следваща точка
+- [x] **10. AI travel chat** — parse intent (Vercel) + GYG activities; flights/hotels/car stubs
 
 ## Бележки
 
@@ -22,6 +23,7 @@
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
 - #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
 - #9: реалистично с `expo-location` geofencing / background location + `expo-notifications`. Нужни: foreground+background permission, battery-friendly radius (~50–100 m), дедуп на нотификации per stop. Работи най-добре когато trip е „активен“; iOS е по-строг за background.
+- #10: Chat таб (AI) на мястото на Route; Route е stack екран (от Explore / Attractions / Saved). Saved остава в bottom nav.
 
 ## История
 
@@ -37,3 +39,4 @@
 | 2026-07-22 | #8+#9 backlog | Добавени — photos upgrade + live trip geofence pushes |
 | 2026-07-23 | #8 По-добри снимки | Готово — Pexels API, галерия с няколко снимки + attribution |
 | 2026-07-23 | #7 Партньорски билети | Готово — GetYourGuide affiliate deep links + disclosure |
+| 2026-07-24 | #10 AI travel chat | Готово — parse API + orchestrator; GYG activities; Chat tab |

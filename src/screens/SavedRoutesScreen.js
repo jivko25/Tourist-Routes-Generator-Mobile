@@ -50,7 +50,7 @@ export function SavedRoutesScreen({ navigation }) {
     try {
       setLoadingId(route.id);
       loadSavedRoute(route);
-      navigation.navigate('MainTabs', { screen: 'RouteTab' });
+      navigation.navigate('Route');
     } catch (error) {
       Alert.alert('Could not open route', error.message || 'Unknown error');
     } finally {
@@ -206,7 +206,7 @@ export function SavedRoutesScreen({ navigation }) {
               buttonColor={colors.accent}
               textColor="#FFFFFF"
               onPress={() =>
-                navigation.navigate('MainTabs', { screen: 'RouteTab' })
+                navigation.navigate('Route')
               }
               style={styles.emptyBtn}
             >

@@ -238,7 +238,7 @@ export function AttractionsScreen({ navigation }) {
           textColor="#FFFFFF"
           disabled={selectedAttractions.length === 0}
           onPress={() =>
-            navigation.navigate('MainTabs', { screen: 'RouteTab' })
+            navigation.navigate('Route')
           }
           contentStyle={styles.footerButton}
           style={styles.footerAction}

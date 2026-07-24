@@ -1,10 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AttractionsScreen } from '../screens/AttractionsScreen';
@@ -12,28 +10,13 @@ import { AttractionDetailScreen } from '../screens/AttractionDetailScreen';
 import { RouteScreen } from '../screens/RouteScreen';
 import { SavedRoutesScreen } from '../screens/SavedRoutesScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ChatScreen } from '../screens/ChatScreen';
 import { useTravel } from '../context/TravelContext';
 import { colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const TAB_BAR_CONTENT_HEIGHT = 56;
-
-function RouteTabIcon({ color, size }) {
-  const { selectedAttractions } = useTravel();
-  const count = selectedAttractions.length;
-
-  return (
-    <View>
-      <MaterialCommunityIcons name="map-marker-path" color={color} size={size} />
-      {count > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{count > 9 ? '9+' : String(count)}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
 
 function MainTabs() {
   const { savedRoutes } = useTravel();
@@ -82,12 +65,16 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="RouteTab"
-        component={RouteScreen}
+        name="ChatTab"
+        component={ChatScreen}
         options={{
-          title: 'Route',
+          title: 'AI',
           tabBarIcon: ({ color, size }) => (
-            <RouteTabIcon color={color} size={size} />
+            <MaterialCommunityIcons
+              name="robot-outline"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -149,6 +136,11 @@ export function AppNavigator() {
           })}
         />
         <Stack.Screen
+          name="Route"
+          component={RouteScreen}
+          options={{ title: 'Your route' }}
+        />
+        <Stack.Screen
           name="Settings"
           component={SettingsScreen}
           options={{ title: 'Settings' }}
@@ -157,23 +149,3 @@ export function AppNavigator() {
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    right: -8,
-    top: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-});

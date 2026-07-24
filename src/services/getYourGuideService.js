@@ -26,7 +26,12 @@ export function cityLabelFromSearch(cityName) {
  * Build a tracked GetYourGuide search URL.
  *
  * @param {string} query
- * @param {{ partnerId?: string, cmp?: string }} [options]
+ * @param {{
+ *   partnerId?: string,
+ *   cmp?: string,
+ *   startDate?: string|null,
+ *   endDate?: string|null,
+ * }} [options]
  * @returns {string}
  */
 export function buildGetYourGuideSearchUrl(query, options = {}) {
@@ -40,10 +45,72 @@ export function buildGetYourGuideSearchUrl(query, options = {}) {
   if (partnerId) {
     params.set('partner_id', partnerId);
   }
+  // Optional date hints (GYG may ignore unknown params; safe for affiliate landing).
+  if (options.startDate) {
+    params.set('date_from', String(options.startDate).slice(0, 10));
+  }
+  if (options.endDate) {
+    params.set('date_to', String(options.endDate).slice(0, 10));
+  }
   params.set('utm_source', 'travelgo');
   params.set('cmp', options.cmp || 'travelgo_place');
 
   return `${GYG_SEARCH_BASE}?${params.toString()}`;
+}
+
+/**
+ * Affiliate activity cards from AI parse result (destination + places).
+ *
+ * @param {{
+ *   destination?: string|null,
+ *   places?: string[],
+ *   travelDates?: { start?: string|null, end?: string|null }|null,
+ * }} input
+ * @returns {Array<{ id: string, title: string, subtitle: string, url: string }>}
+ */
+export function buildGetYourGuideLinksFromIntent(input = {}) {
+  const destination = (input.destination || '').trim();
+  const places = Array.isArray(input.places)
+    ? input.places.map((p) => String(p || '').trim()).filter(Boolean)
+    : [];
+  const startDate = input.travelDates?.start || null;
+  const endDate = input.travelDates?.end || null;
+
+  const dateOpts = { startDate, endDate, cmp: 'travelgo_chat' };
+
+  if (places.length === 0) {
+    if (!destination) return [];
+    const url = buildGetYourGuideSearchUrl(
+      `${destination} activities`,
+      dateOpts
+    );
+    return url
+      ? [
+          {
+            id: `gyg-dest-${destination}`,
+            title: destination,
+            subtitle: `Things to do in ${destination}`,
+            url,
+          },
+        ]
+      : [];
+  }
+
+  return places
+    .map((place) => {
+      const query = destination ? `${place} ${destination}` : place;
+      const url = buildGetYourGuideSearchUrl(query, dateOpts);
+      if (!url) return null;
+      return {
+        id: `gyg-${place}`,
+        title: place,
+        subtitle: destination
+          ? `Activities near ${place} · ${destination}`
+          : `Activities for ${place}`,
+        url,
+      };
+    })
+    .filter(Boolean);
 }
 
 /**
