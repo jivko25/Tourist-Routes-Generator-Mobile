@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   FlatList,
   Pressable,
@@ -7,21 +8,23 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CountrySilhouette } from './WorldMapSvg';
 import { getApproxPathBounds } from '../../utils/svgPathBounds';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../../utils/worldCountries';
 import { colors, radii, spacing } from '../../theme/colors';
 
-function formatVisitDate(iso) {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return '';
+function formatPopulation(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return null;
   }
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    return `${Math.round(value / 1000)}k`;
+  }
+  return String(value);
 }
 
 function buildSheetTransform(d) {
@@ -41,12 +44,17 @@ function buildSheetTransform(d) {
 
 export function CountryDetailSheet({
   country,
-  visits = [],
   translateY,
   onClose,
   onMarkVisited,
   onClearCountry,
   isVisited,
+  cities = [],
+  citiesLoading = false,
+  citiesError = null,
+  onRetryCities,
+  onCityPress,
+  openingCityName = null,
 }) {
   const transform = useMemo(
     () => (country?.d ? buildSheetTransform(country.d) : undefined),
@@ -55,18 +63,13 @@ export function CountryDetailSheet({
 
   if (!country) return null;
 
-  const placeVisits = visits.filter((v) => v.placeName);
-  const hasAny = visits.length > 0;
-
   return (
     <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{country.name || country.id}</Text>
           <Text style={styles.subtitle}>
-            {isVisited
-              ? `${visits.length} logged visit${visits.length === 1 ? '' : 's'}`
-              : 'Not marked yet'}
+            {isVisited ? 'Visited · tap a city to explore' : 'Tap a city to explore'}
           </Text>
         </View>
         <Pressable onPress={onClose} hitSlop={12} style={styles.closeBtn}>
@@ -78,32 +81,72 @@ export function CountryDetailSheet({
         <CountrySilhouette d={country.d} transform={transform} />
       </View>
 
-      {placeVisits.length > 0 ? (
+      <View style={styles.citiesHeader}>
+        <Text style={styles.citiesTitle}>Top cities</Text>
+        {citiesLoading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : null}
+      </View>
+
+      {citiesError ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{citiesError}</Text>
+          {typeof onRetryCities === 'function' ? (
+            <Pressable onPress={onRetryCities} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      {!citiesError && !citiesLoading && cities.length === 0 ? (
+        <Text style={styles.empty}>No cities found for this country.</Text>
+      ) : null}
+
+      {!citiesError && cities.length > 0 ? (
         <FlatList
-          data={placeVisits}
-          keyExtractor={(item) => item.id}
+          data={cities}
+          keyExtractor={(item) =>
+            String(item.geonameId || `${item.name}-${item.latitude}`)
+          }
           style={styles.list}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <View style={styles.visitRow}>
-              <Text style={styles.visitPlace} numberOfLines={1}>
-                {item.placeName}
-              </Text>
-              <Text style={styles.visitMeta}>
-                {[item.cityName, formatVisitDate(item.visitedAt)]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            </View>
-          )}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            const pop = formatPopulation(item.population);
+            const busy = openingCityName === item.name;
+            return (
+              <Pressable
+                disabled={Boolean(openingCityName)}
+                onPress={() => onCityPress?.(item)}
+                style={({ pressed }) => [
+                  styles.cityRow,
+                  pressed && styles.pressed,
+                  busy && styles.cityRowBusy,
+                ]}
+              >
+                <View style={styles.cityText}>
+                  <Text style={styles.cityName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {pop ? (
+                    <Text style={styles.cityMeta}>Pop. {pop}</Text>
+                  ) : null}
+                </View>
+                {busy ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={22}
+                    color={colors.textMuted}
+                  />
+                )}
+              </Pressable>
+            );
+          }}
         />
-      ) : (
-        <Text style={styles.empty}>
-          {hasAny
-            ? 'Country marked as visited. Place-level history will appear when you complete stops on a live route.'
-            : 'No visits here yet. Mark the country, or complete a live route stop later to log places automatically.'}
-        </Text>
-      )}
+      ) : null}
 
       <View style={styles.actions}>
         {isVisited ? (
@@ -138,7 +181,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 320,
+    height: 420,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
@@ -187,30 +230,50 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   preview: {
-    height: 88,
+    height: 64,
     marginBottom: spacing.sm,
     borderRadius: radii.md,
     overflow: 'hidden',
     backgroundColor: colors.primarySoft,
   },
+  citiesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  citiesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
   list: {
-    flexGrow: 0,
-    maxHeight: 96,
+    flexGrow: 1,
+    maxHeight: 180,
   },
   listContent: {
     paddingBottom: spacing.xs,
   },
-  visitRow: {
-    paddingVertical: 8,
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  visitPlace: {
-    fontSize: 14,
+  cityRowBusy: {
+    opacity: 0.7,
+  },
+  cityText: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  cityName: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
-  visitMeta: {
+  cityMeta: {
     marginTop: 2,
     fontSize: 12,
     color: colors.textMuted,
@@ -221,8 +284,29 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },
+  errorBox: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  retryBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
   actions: {
     marginTop: 'auto',
+    paddingTop: spacing.sm,
   },
   primaryBtn: {
     backgroundColor: colors.accent,

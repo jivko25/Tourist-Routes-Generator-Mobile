@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getTravelApiBaseUrl } from '../utils/config';
+import { normalizeCountryDetailsResponse } from '../types/country';
 
 /**
  * @param {unknown} error
@@ -10,6 +11,7 @@ function toTravelApiError(error) {
   const body = error?.response?.data;
   const message =
     (typeof body?.message === 'string' && body.message) ||
+    (typeof body === 'string' && body) ||
     error?.message ||
     'Something went wrong talking to the travel assistant.';
 
@@ -58,6 +60,48 @@ export async function parseTravelRequest(text) {
       travelDates: data.travelDates ?? null,
       services: Array.isArray(data.services) ? data.services : [],
     };
+  } catch (error) {
+    throw toTravelApiError(error);
+  }
+}
+
+/**
+ * GET /api/countries/:countryCode — country details + top tourist cities.
+ *
+ * @param {string} countryCode ISO alpha-2
+ * @param {number} [limit]
+ * @returns {Promise<import('../types/country').CountryDetailsResponse>}
+ */
+export async function getCountryDetails(countryCode, limit) {
+  const code = String(countryCode || '')
+    .trim()
+    .toUpperCase();
+
+  if (!/^[A-Z]{2}$/.test(code)) {
+    const err = new Error(
+      'Invalid countryCode. Use ISO alpha-2, e.g. FR.'
+    );
+    err.statusCode = 400;
+    err.isTravelApiError = true;
+    throw err;
+  }
+
+  const baseUrl = getTravelApiBaseUrl();
+  const params = {};
+  if (limit != null && Number.isFinite(Number(limit))) {
+    params.limit = Math.min(50, Math.max(1, Math.round(Number(limit))));
+  }
+
+  try {
+    const response = await axios.get(`${baseUrl}/api/countries/${code}`, {
+      params,
+      timeout: 20000,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    return normalizeCountryDetailsResponse(response.data);
   } catch (error) {
     throw toTravelApiError(error);
   }
