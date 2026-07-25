@@ -11,12 +11,14 @@ import {
   storageService,
 } from '../services/storageService';
 import { createSavedRoute } from '../types/savedRoute';
+import { createVisit } from '../types/visit';
 import { generateGoogleMapsRoute } from '../services/mapsService';
 import {
   MAX_SEARCH_RADIUS_METERS,
   MIN_SEARCH_RADIUS_METERS,
   normalizeTravelMode,
 } from '../utils/config';
+import { getCountryName } from '../utils/worldCountries';
 
 const TravelContext = createContext(null);
 
@@ -37,6 +39,7 @@ export function TravelProvider({ children }) {
   const [attractions, setAttractions] = useState([]);
   const [selectedAttractions, setSelectedAttractions] = useState([]);
   const [savedRoutes, setSavedRoutes] = useState([]);
+  const [visits, setVisits] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -45,12 +48,13 @@ export function TravelProvider({ children }) {
 
     async function hydrate() {
       try {
-        const [savedAttractions, lastCity, savedSettings, routes] =
+        const [savedAttractions, lastCity, savedSettings, routes, savedVisits] =
           await Promise.all([
             storageService.loadSelectedAttractions(),
             storageService.loadLastCity(),
             storageService.loadSettings(),
             storageService.loadSavedRoutes(),
+            storageService.loadVisits(),
           ]);
 
         if (!mounted) return;
@@ -58,6 +62,7 @@ export function TravelProvider({ children }) {
         setSelectedAttractions(savedAttractions);
         setSettings(savedSettings);
         setSavedRoutes(routes);
+        setVisits(savedVisits);
         if (lastCity) {
           setSearchedCity(lastCity.name);
           setCityCoordinates({
@@ -98,6 +103,89 @@ export function TravelProvider({ children }) {
       console.warn('Failed to persist saved routes:', error);
     });
   }, [savedRoutes, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    storageService.saveVisits(visits).catch((error) => {
+      console.warn('Failed to persist visits:', error);
+    });
+  }, [visits, isHydrated]);
+
+  const visitedCountryCodes = useMemo(() => {
+    const codes = new Set();
+    visits.forEach((visit) => {
+      if (visit?.countryCode) codes.add(String(visit.countryCode).toUpperCase());
+    });
+    return [...codes];
+  }, [visits]);
+
+  const getVisitsForCountry = useCallback(
+    (countryCode) => {
+      const code = String(countryCode || '').toUpperCase();
+      return visits
+        .filter((visit) => String(visit.countryCode).toUpperCase() === code)
+        .sort(
+          (a, b) =>
+            new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
+        );
+    },
+    [visits]
+  );
+
+  const addVisit = useCallback((data) => {
+    const countryCode = String(data?.countryCode || '')
+      .trim()
+      .toUpperCase();
+    if (!countryCode) {
+      throw new Error('Country code is required.');
+    }
+
+    const visit = createVisit({
+      ...data,
+      countryCode,
+      countryName: data?.countryName || getCountryName(countryCode),
+    });
+
+    setVisits((current) => [visit, ...current]);
+    return visit;
+  }, []);
+
+  const markCountryVisited = useCallback(
+    (countryCode, extras = {}) => {
+      const code = String(countryCode || '')
+        .trim()
+        .toUpperCase();
+      if (!code) return null;
+
+      const existingCountryMark = visits.find(
+        (visit) =>
+          String(visit.countryCode).toUpperCase() === code &&
+          !visit.placeName &&
+          visit.source === 'manual'
+      );
+      if (existingCountryMark) return existingCountryMark;
+
+      return addVisit({
+        countryCode: code,
+        placeName: null,
+        cityName: extras.cityName || null,
+        source: 'manual',
+        visitedAt: extras.visitedAt,
+      });
+    },
+    [addVisit, visits]
+  );
+
+  const removeVisitsForCountry = useCallback((countryCode) => {
+    const code = String(countryCode || '').toUpperCase();
+    setVisits((current) =>
+      current.filter((visit) => String(visit.countryCode).toUpperCase() !== code)
+    );
+  }, []);
+
+  const deleteVisit = useCallback((visitId) => {
+    setVisits((current) => current.filter((visit) => visit.id !== visitId));
+  }, []);
 
   const setSearchResult = useCallback((city, places) => {
     setSearchedCity(city.name);
@@ -264,6 +352,8 @@ export function TravelProvider({ children }) {
       attractions,
       selectedAttractions,
       savedRoutes,
+      visits,
+      visitedCountryCodes,
       settings,
       isHydrated,
       setSearchResult,
@@ -279,6 +369,11 @@ export function TravelProvider({ children }) {
       saveCurrentRoute,
       deleteSavedRoute,
       loadSavedRoute,
+      getVisitsForCountry,
+      addVisit,
+      markCountryVisited,
+      removeVisitsForCountry,
+      deleteVisit,
     }),
     [
       searchedCity,
@@ -286,6 +381,8 @@ export function TravelProvider({ children }) {
       attractions,
       selectedAttractions,
       savedRoutes,
+      visits,
+      visitedCountryCodes,
       settings,
       isHydrated,
       setSearchResult,
@@ -300,6 +397,11 @@ export function TravelProvider({ children }) {
       saveCurrentRoute,
       deleteSavedRoute,
       loadSavedRoute,
+      getVisitsForCountry,
+      addVisit,
+      markCountryVisited,
+      removeVisitsForCountry,
+      deleteVisit,
     ]
   );
 

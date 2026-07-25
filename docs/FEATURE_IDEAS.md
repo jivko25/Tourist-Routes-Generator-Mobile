@@ -13,8 +13,33 @@
 - [x] **6. Офлайн маршрут** — запазени данни достъпни без интернет
 - [x] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
 - [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
-- [ ] **9. Проследяване на пътуването** — „Start trip“; при достигане на спирка (гео) → push с поздравление / следваща точка
-- [x] **10. AI travel chat** — parse intent (Vercel) + GYG activities; flights/hotels/car stubs
+- [ ] **9. Live проследяване на маршрут** — „Start trip“; background location докато потребителят ползва Maps; при пристигане → push; от нотификацията → детайл за мястото → следваща точка
+- [x] **10. AI travel chat** — parse intent (Vercel) + GYG activities; hotels/car stubs (flights — за премахване, виж #13)
+- [ ] **11. Visited map (страни/места)** — SVG карта на света; оцветяване на посетени държави; при клик — списък къде/кога съм бил в тази страна (хранене от #9)
+  - [x] Базов екран + SVG map (`@svg-maps/world`) + pan/zoom + sheet
+  - [x] Локални visits в AsyncStorage + Mark as visited / Clear
+  - [x] Curved bottom tab (AI FAB + Explore / Saved / Map; готов за 5-ти бутон)
+  - [ ] Автоматично логване на места от live trip (#9)
+- [ ] **12. Booking.com affiliate в чата** — хотели през партньорски линкове (като GYG за activities), с disclosure
+- [ ] **13. Премахване на полети от чата** — няма ясен flight affiliate; махни transport/flights от parse UI, orchestrator stubs и placeholder copy
+- [ ] **14. Clarifying questions в AI чата (бекенд)** — slot-filling: ако липсват критични данни, питай преди orchestration (не „познавай“)
+- [ ] **15. Разумен throttling на AI / API** — лимити на заявки (per device / IP / ден), за да не се изчерпи безплатният лимит на LLM и свързаните API-та
+
+## Продуктова връзка (#9 + #11)
+
+Цикъл: **активен маршрут → посещение → спомен на картата**.
+
+1. Потребителят стартира маршрут в приложението.
+2. В background се следи локацията (геофенс около **следващата** точка; battery-friendly, не непрекъснат GPS stream).
+3. При пристигане → push: „Пристигна на [място]“.
+4. Отваряне на push → повече информация за текущото място → продължаване към следващата точка по същия начин.
+5. Локално се записва посещение: място + дата/час (+ държава/град ако е налично).
+6. На visited картата се оцветява съответната държава; tap → „къде съм бил в тази страна“.
+
+Етапи (препоръчително):
+1. Arrival detection + local visit log
+2. Push + place detail deep link
+3. Country/city map coloring от реални посещения
 
 ## Бележки
 
@@ -22,8 +47,18 @@
 - #6: AsyncStorage + NetInfo — преглед на saved routes офлайн; нови търсения/Maps directions изискват интернет. Пълни offline map tiles не са част от Google Maps SDK в Expo.
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
 - #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
-- #9: реалистично с `expo-location` geofencing / background location + `expo-notifications`. Нужни: foreground+background permission, battery-friendly radius (~50–100 m), дедуп на нотификации per stop. Работи най-добре когато trip е „активен“; iOS е по-строг за background.
-- #10: Chat таб (AI) на мястото на Route; Route е stack екран (от Explore / Attractions / Saved). Saved остава в bottom nav.
+- #9: `expo-location` geofencing / background location + `expo-notifications`. Нужни: foreground+background permission, radius ~80–150 m, debounce 30–60 сек в зоната (GPS drift), дедуп per stop. Активен само докато trip е „active“. iOS е по-строг (permission copy, App Store review). Deep link от нотификацията към place detail. Offline: запис локално.
+- #10: Chat таб (AI); Route е stack екран (от Explore / Attractions / Saved). Saved остава в bottom nav.
+- #11: съществуващо SVG world-map приложение може да се merge-не като вторичен таб/секция („My Map“ / „Been“), не като главен фокус. Автоматично mark от завършени/посетени спирки; ръчен tap по желание. По-късно: споделяне на картата.
+  - Имплементирано: `VisitedMapScreen` + `@svg-maps/world` + visits в AsyncStorage; ръчен „Mark as visited“. Curved tab: Explore / Saved / AI FAB / Map.
+  - Остава: auto visits от live tracking (#9).
+- #12: Booking.com partner links в hotel branch на orchestrator-а (заместване на hotel placeholder), аналогично на GYG. Disclosure задължителен.
+- #13: махни `transport` / flights от chat UX и stubs; остави activities (GYG) + hotels (Booking #12) + евентуално car_rental ако има affiliate по-късно.
+- #14: бекенд `/api/travel/parse` (или follow-up endpoint) връща `needs_clarification` + 1–3 въпроса; клиентът merge-ва отговорите в същия intent.
+  - **Критични (спри и питай):** дестинация; дати или „от–до“ / начална дата + брой дни; брой души (за Booking/цени).
+  - **Важни, неблокиращи:** бюджет; интереси (музеи, food…); темпо (relaxed / packed).
+  - UX: макс. 2–3 въпроса на ход, групирани („Кога пътувате и колко души сте?“), не анкета.
+- #15: throttle на parse/chat endpoint — напр. N заявки / минута и дневен cap per device id (или anon token) + IP; ясен UX при лимит („Опитай пак по-късно“). По желание: по-кратък prompt / евтин модел за clarification-only стъпки. Цел: да останем в безплатния/евтиния tier колкото се може по-дълго.
 
 ## История
 
@@ -40,3 +75,7 @@
 | 2026-07-23 | #8 По-добри снимки | Готово — Pexels API, галерия с няколко снимки + attribution |
 | 2026-07-23 | #7 Партньорски билети | Готово — GetYourGuide affiliate deep links + disclosure |
 | 2026-07-24 | #10 AI travel chat | Готово — parse API + orchestrator; GYG activities; Chat tab |
+| 2026-07-25 | #9 разширено | Live tracking + push + visit log; връзка с #11 |
+| 2026-07-25 | #11+#12+#13 | Visited map; Booking.com в чата; премахване на полети |
+| 2026-07-25 | #14+#15 | Clarifying slot-fill в чата; throttling за free-tier лимити |
+| 2026-07-25 | #11 partial | Visited map UI + visits storage + curved tab bar (AI FAB) |
