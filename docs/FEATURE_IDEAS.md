@@ -18,7 +18,7 @@
 - [ ] **11. Visited map (страни/места)** — SVG карта на света; оцветяване на посетени държави; при клик — списък къде/кога съм бил в тази страна (хранене от #9)
   - [x] Базов екран + SVG map (`@svg-maps/world`) + pan/zoom + sheet
   - [x] Локални visits в AsyncStorage + Mark as visited / Clear
-  - [x] Curved bottom tab (AI FAB + Explore / Saved / Map; готов за 5-ти бутон)
+  - [x] Curved bottom tab (AI FAB + Explore / Saved / Map / Settings)
   - [x] Top cities от `GET /api/countries/:code` → tap → Attractions (без geocode)
   - [x] Visit schema: `kind: country | city | place` (+ placeId, coords, routeId) — готов за live trip
   - [ ] UI: mark city visited + badge в списъка с градове

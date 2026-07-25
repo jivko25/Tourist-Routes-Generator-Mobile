@@ -79,6 +79,13 @@ function MainTabs() {
           headerShown: false,
         }}
       />
+      <Tab.Screen
+        name="SettingsTab"
+        component={SettingsScreen}
+        options={{
+          title: t('tabs.settings'),
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -124,11 +131,6 @@ export function AppNavigator() {
           name="Route"
           component={RouteScreen}
           options={{ title: t('stack.route') }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ title: t('stack.settings') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

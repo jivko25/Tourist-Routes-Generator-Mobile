@@ -685,7 +685,9 @@ export function RouteScreen({ navigation }) {
           <Button
             mode="text"
             compact
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() =>
+              navigation.navigate('MainTabs', { screen: 'SettingsTab' })
+            }
             textColor={colors.primary}
             style={styles.editSettings}
           >

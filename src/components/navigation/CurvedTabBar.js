@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
 
-/** Bar content height (excluding safe-area). Layout ready for a 5th peripheral later. */
+/** Bar content height (excluding safe-area). */
 export const CURVED_TAB_BAR_HEIGHT = 68;
 export const CURVED_TAB_FAB_SIZE = 62;
 const NOTCH_RADIUS = 38;
@@ -20,8 +20,7 @@ const NOTCH_DEPTH = 26;
 
 /**
  * Peripheral slots around the AI FAB.
- * Today: Explore | Saved | [AI] | Map
- * Later: add a 5th (e.g. Profile) on the right side.
+ * Explore | Saved | [AI] | Map | Settings
  */
 const LEFT_SLOTS = [
   { key: 'HomeTab', labelKey: 'tabs.explore', icon: 'compass-outline', iconActive: 'compass' },
@@ -30,6 +29,12 @@ const LEFT_SLOTS = [
 
 const RIGHT_SLOTS = [
   { key: 'MapTab', labelKey: 'tabs.map', icon: 'earth', iconActive: 'earth' },
+  {
+    key: 'SettingsTab',
+    labelKey: 'tabs.settings',
+    icon: 'cog-outline',
+    iconActive: 'cog',
+  },
 ];
 
 function buildBarPath(width, height, centerX) {
