@@ -138,7 +138,10 @@
     "photoCount_other": "{{count}} photos",
     "removeTitle": "Remove from album?",
     "removeBody": "The photo stays in your gallery. Only the link in Travel Go is removed.",
-    "remove": "Remove"
+    "remove": "Remove",
+    "duplicatesTitle": "Already in album",
+    "duplicatesAllBody": "Those photos are already linked to this city.",
+    "duplicatesPartialBody": "Added {{added}}. Skipped {{skipped}} already in this album."
   },
   "detail": {
     "about": "About",
