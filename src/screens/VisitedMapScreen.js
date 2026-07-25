@@ -36,6 +36,7 @@ function fitMapSize(containerW, containerH) {
   return { width, height: width / MAP_ASPECT };
 }
 
+/** Absolute top-left of the scaled map inside the container. */
 function clampPan(panX, panY, scale, fitted, container) {
   const displayW = fitted.width * scale;
   const displayH = fitted.height * scale;
@@ -71,8 +72,8 @@ export function VisitedMapScreen({ navigation }) {
 
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [container, setContainer] = useState({ width: 0, height: 0 });
+  /** Vector zoom: SVG is redrawn at fitted * scale (sharp). Pan uses Animated only. */
   const [scale, setScale] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [cities, setCities] = useState([]);
   const [citiesLoading, setCitiesLoading] = useState(false);
   const [citiesError, setCitiesError] = useState(null);
@@ -87,7 +88,13 @@ export function VisitedMapScreen({ navigation }) {
   const isPinching = useRef(false);
   const containerRef = useRef(container);
   const fittedRef = useRef({ width: 0, height: 0 });
-  const frameRef = useRef(null);
+  const pendingPan = useRef(null);
+  const panFrameRef = useRef(null);
+  const pendingScale = useRef(null);
+  const scaleFrameRef = useRef(null);
+
+  const animLeft = useRef(new Animated.Value(0)).current;
+  const animTop = useRef(new Animated.Value(0)).current;
 
   const fitted = useMemo(
     () => fitMapSize(container.width, container.height),
@@ -97,12 +104,6 @@ export function VisitedMapScreen({ navigation }) {
   containerRef.current = container;
   fittedRef.current = fitted;
   scaleRef.current = scale;
-  panRef.current = pan;
-
-  const mapOffset = useMemo(
-    () => clampPan(pan.x, pan.y, scale, fitted, container),
-    [pan, scale, fitted, container]
-  );
 
   const visitedSet = useMemo(
     () => new Set(visitedCountryCodes),
@@ -116,39 +117,104 @@ export function VisitedMapScreen({ navigation }) {
     );
   }, [selectedCountry?.id, getVisitsForCountry]);
 
-  const loadCities = useCallback(async (countryCode, { force = false } = {}) => {
-    const code = String(countryCode || '').toUpperCase();
-    if (!code) return;
+  const applyPanNow = useCallback(
+    (nextPan, scaleNow = scaleRef.current) => {
+      const fittedNow = fittedRef.current;
+      const containerNow = containerRef.current;
+      if (!fittedNow.width || !containerNow.width) return;
 
-    if (!force && citiesCacheRef.current.has(code)) {
-      setCities(citiesCacheRef.current.get(code));
+      const clamped = clampPan(
+        nextPan.x,
+        nextPan.y,
+        scaleNow,
+        fittedNow,
+        containerNow
+      );
+      const displayW = fittedNow.width * scaleNow;
+      const displayH = fittedNow.height * scaleNow;
+      const relativePan = {
+        x: clamped.x - (containerNow.width - displayW) / 2,
+        y: clamped.y - (containerNow.height - displayH) / 2,
+      };
+
+      panRef.current = relativePan;
+      animLeft.setValue(clamped.x);
+      animTop.setValue(clamped.y);
+    },
+    [animLeft, animTop]
+  );
+
+  const schedulePan = useCallback(
+    (nextPan) => {
+      pendingPan.current = nextPan;
+      if (panFrameRef.current != null) return;
+      panFrameRef.current = requestAnimationFrame(() => {
+        panFrameRef.current = null;
+        const pending = pendingPan.current;
+        if (!pending) return;
+        applyPanNow(pending);
+      });
+    },
+    [applyPanNow]
+  );
+
+  const scheduleScale = useCallback(
+    (nextScale, nextPan) => {
+      pendingScale.current = { scale: nextScale, pan: nextPan };
+      if (scaleFrameRef.current != null) return;
+      scaleFrameRef.current = requestAnimationFrame(() => {
+        scaleFrameRef.current = null;
+        const pending = pendingScale.current;
+        if (!pending) return;
+        scaleRef.current = pending.scale;
+        setScale(pending.scale);
+        applyPanNow(pending.pan, pending.scale);
+      });
+    },
+    [applyPanNow]
+  );
+
+  useEffect(() => {
+    if (!fitted.width || !container.width) return;
+    applyPanNow(panRef.current, scaleRef.current);
+  }, [fitted.width, fitted.height, container.width, container.height, scale, applyPanNow]);
+
+  const loadCities = useCallback(
+    async (countryCode, { force = false } = {}) => {
+      const code = String(countryCode || '').toUpperCase();
+      if (!code) return;
+
+      if (!force && citiesCacheRef.current.has(code)) {
+        setCities(citiesCacheRef.current.get(code));
+        setCitiesError(null);
+        setCitiesLoading(false);
+        return;
+      }
+
+      if (isOffline) {
+        setCities([]);
+        setCitiesError(t('map.offlineCities'));
+        setCitiesLoading(false);
+        return;
+      }
+
+      setCitiesLoading(true);
       setCitiesError(null);
-      setCitiesLoading(false);
-      return;
-    }
 
-    if (isOffline) {
-      setCities([]);
-      setCitiesError(t('map.offlineCities'));
-      setCitiesLoading(false);
-      return;
-    }
-
-    setCitiesLoading(true);
-    setCitiesError(null);
-
-    try {
-      const result = await getCountryDetails(code, CITIES_LIMIT);
-      const list = Array.isArray(result.cities) ? result.cities : [];
-      citiesCacheRef.current.set(code, list);
-      setCities(list);
-    } catch (error) {
-      setCities([]);
-      setCitiesError(error?.message || t('map.citiesError'));
-    } finally {
-      setCitiesLoading(false);
-    }
-  }, [isOffline, t]);
+      try {
+        const result = await getCountryDetails(code, CITIES_LIMIT);
+        const list = Array.isArray(result.cities) ? result.cities : [];
+        citiesCacheRef.current.set(code, list);
+        setCities(list);
+      } catch (error) {
+        setCities([]);
+        setCitiesError(error?.message || t('map.citiesError'));
+      } finally {
+        setCitiesLoading(false);
+      }
+    },
+    [isOffline, t]
+  );
 
   useEffect(() => {
     if (!selectedCountry?.id) {
@@ -169,32 +235,6 @@ export function VisitedMapScreen({ navigation }) {
       cancelled = true;
     };
   }, [selectedCountry?.id, citiesRequestKey, loadCities]);
-
-  const scheduleTransform = useCallback((nextScale, nextPan) => {
-    if (frameRef.current != null) return;
-    frameRef.current = requestAnimationFrame(() => {
-      frameRef.current = null;
-      const fittedNow = fittedRef.current;
-      const containerNow = containerRef.current;
-      const clamped = clampPan(
-        nextPan.x,
-        nextPan.y,
-        nextScale,
-        fittedNow,
-        containerNow
-      );
-      const displayW = fittedNow.width * nextScale;
-      const displayH = fittedNow.height * nextScale;
-      const relativePan = {
-        x: clamped.x - (containerNow.width - displayW) / 2,
-        y: clamped.y - (containerNow.height - displayH) / 2,
-      };
-      scaleRef.current = nextScale;
-      panRef.current = relativePan;
-      setScale(nextScale);
-      setPan(relativePan);
-    });
-  }, []);
 
   const openSheet = useCallback(
     ({ id, name, d }) => {
@@ -315,14 +355,16 @@ export function VisitedMapScreen({ navigation }) {
               Math.max(lastScale.current * ratio, MIN_SCALE),
               MAX_SCALE
             );
-            scheduleTransform(nextScale, lastPan.current);
+            // Vector resize (sharp). Throttled to 1 update/frame.
+            scheduleScale(nextScale, lastPan.current);
           }
           return;
         }
 
         if (!isPinching.current && touchCount === 1) {
           if (scaleRef.current > 1.02) {
-            scheduleTransform(scaleRef.current, {
+            // Pan only — Animated, no SVG resize → smooth + sharp.
+            schedulePan({
               x: lastPan.current.x + gestureState.dx,
               y: lastPan.current.y + gestureState.dy,
             });
@@ -335,7 +377,9 @@ export function VisitedMapScreen({ navigation }) {
         isPinching.current = false;
         initialPinchDistance.current = null;
         if (scaleRef.current <= 1.02) {
-          scheduleTransform(1, { x: 0, y: 0 });
+          scaleRef.current = 1;
+          setScale(1);
+          applyPanNow({ x: 0, y: 0 }, 1);
         }
       },
       onPanResponderTerminationRequest: () => true,
@@ -378,14 +422,16 @@ export function VisitedMapScreen({ navigation }) {
         {...panResponder.panHandlers}
       >
         {displayW > 0 && displayH > 0 ? (
-          <View
+          <Animated.View
             style={[
               styles.mapCanvas,
               {
                 width: displayW,
                 height: displayH,
-                left: mapOffset.x,
-                top: mapOffset.y,
+                transform: [
+                  { translateX: animLeft },
+                  { translateY: animTop },
+                ],
               },
             ]}
             pointerEvents="box-none"
@@ -397,7 +443,7 @@ export function VisitedMapScreen({ navigation }) {
               selectedId={selectedCountry?.id || null}
               onCountryPress={openSheet}
             />
-          </View>
+          </Animated.View>
         ) : null}
 
         <CountryDetailSheet
@@ -479,5 +525,7 @@ const styles = StyleSheet.create({
   },
   mapCanvas: {
     position: 'absolute',
+    left: 0,
+    top: 0,
   },
 });
