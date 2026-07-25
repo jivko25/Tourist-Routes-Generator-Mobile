@@ -54,7 +54,7 @@
 - #6: AsyncStorage + NetInfo — преглед на saved routes офлайн; нови търсения/Maps directions изискват интернет. Пълни offline map tiles не са част от Google Maps SDK в Expo.
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
 - #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
-- #9: `expo-location` geofencing / background location + `expo-notifications`. При arrival викай `recordPlaceVisit({ countryCode, cityName, placeId, placeName, lat/lng, routeId, source: 'trip' })`. Нужни: foreground+background permission, radius ~80–150 m, debounce 30–60 сек, дедуп per `placeId`. Deep link от нотификацията към place detail.
+- #9: `expo-location` geofencing / background location + `expo-notifications`. При arrival викай `recordPlaceVisit({ countryCode, cityName, placeId, placeName, lat/lng, routeId, source: 'trip' })`. Нужни: foreground+background permission, radius ~80–150 m, debounce 30–60 сек, дедуп per `placeId`. Deep link от нотификацията към place detail. **Wikipedia extract** вече се зарежда в detail (`wikipediaStory.extract`, ~2–3 мин четене) — готов вход за TTS при пристигане.
 - #11: Visit log е единен store с `kind: country | city | place`. Картата оцветява по countryCode; sheet → градове; град → places. Helpers: `markCountryVisited`, `markCityVisited`, `recordPlaceVisit`, `isCityVisited`.
   - Имплементирано: map UI + countries API + schema.
   - Остава: city badge UI; auto place visits от #9.
@@ -86,3 +86,4 @@
 | 2026-07-25 | #14+#15 | Clarifying slot-fill в чата; throttling за free-tier лимити |
 | 2026-07-25 | #11 visit schema | kind country/city/place + recordPlaceVisit за #9 |
 | 2026-07-25 | i18n EN/BG | i18next + Settings language; Places/Geocoding languageCode |
+| 2026-07-25 | Wikipedia story | Detail preview + sheet; cached extract for future TTS |

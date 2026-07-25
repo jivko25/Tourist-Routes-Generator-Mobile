@@ -15,8 +15,10 @@ import { PlacePricingCard } from '../components/PlacePricingCard';
 import { GetYourGuideCard } from '../components/GetYourGuideCard';
 import { OpeningHoursSection } from '../components/OpeningHoursSection';
 import { ReviewsList } from '../components/ReviewsList';
+import { PlaceWikipediaSection } from '../components/PlaceWikipediaSection';
 import { useTravel } from '../context/TravelContext';
 import { fetchPlaceDetails } from '../services/placesService';
+import { fetchPlaceWikipediaStory } from '../services/wikipediaService';
 import { formatCoordinate } from '../utils/googleMaps';
 import {
   formatDistanceKm,
@@ -43,6 +45,10 @@ export function AttractionDetailScreen({ route, navigation }) {
   const [details, setDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
+  const [wikiStory, setWikiStory] = useState(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const [wikiError, setWikiError] = useState(null);
+  const [wikiReloadKey, setWikiReloadKey] = useState(0);
 
   const baseAttraction = useMemo(() => {
     return (
@@ -54,29 +60,37 @@ export function AttractionDetailScreen({ route, navigation }) {
 
   const attraction = useMemo(() => {
     if (!baseAttraction) return null;
-    if (!details) return baseAttraction;
+
+    const merged = !details
+      ? { ...baseAttraction }
+      : {
+          ...baseAttraction,
+          ...details,
+          // Keep Pexels gallery from list enrichment; Places details has no media URLs.
+          photos:
+            baseAttraction.photos?.length > 0
+              ? baseAttraction.photos
+              : details.photos || [],
+          coverImageUrl: baseAttraction.coverImageUrl || details.coverImageUrl,
+          description: details.description || baseAttraction.description,
+          reviews: details.reviews?.length
+            ? details.reviews
+            : baseAttraction.reviews || [],
+          weekdayDescriptions: details.weekdayDescriptions?.length
+            ? details.weekdayDescriptions
+            : baseAttraction.weekdayDescriptions || [],
+          openNow:
+            typeof details.openNow === 'boolean'
+              ? details.openNow
+              : baseAttraction.openNow,
+        };
+
     return {
-      ...baseAttraction,
-      ...details,
-      // Keep Pexels gallery from list enrichment; Places details has no media URLs.
-      photos:
-        baseAttraction.photos?.length > 0
-          ? baseAttraction.photos
-          : details.photos || [],
-      coverImageUrl: baseAttraction.coverImageUrl || details.coverImageUrl,
-      description: details.description || baseAttraction.description,
-      reviews: details.reviews?.length
-        ? details.reviews
-        : baseAttraction.reviews || [],
-      weekdayDescriptions: details.weekdayDescriptions?.length
-        ? details.weekdayDescriptions
-        : baseAttraction.weekdayDescriptions || [],
-      openNow:
-        typeof details.openNow === 'boolean'
-          ? details.openNow
-          : baseAttraction.openNow,
+      ...merged,
+      // Keep full Wikipedia story for future live-trip TTS.
+      wikipediaStory: wikiStory || baseAttraction.wikipediaStory || null,
     };
-  }, [baseAttraction, details]);
+  }, [baseAttraction, details, wikiStory]);
 
   const selected = attraction
     ? isAttractionSelected(attraction.id)
@@ -133,6 +147,45 @@ export function AttractionDetailScreen({ route, navigation }) {
       cancelled = true;
     };
   }, [baseAttraction?.googlePlaceId, baseAttraction?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!baseAttraction?.name) {
+      setWikiStory(null);
+      setWikiLoading(false);
+      setWikiError(null);
+      return undefined;
+    }
+
+    setWikiLoading(true);
+    setWikiError(null);
+
+    fetchPlaceWikipediaStory(baseAttraction, searchedCity)
+      .then((story) => {
+        if (!cancelled) setWikiStory(story);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setWikiStory(null);
+          setWikiError(error?.message || 'Could not load Wikipedia story.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setWikiLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    baseAttraction?.id,
+    baseAttraction?.googlePlaceId,
+    baseAttraction?.name,
+    baseAttraction?.latitude,
+    baseAttraction?.longitude,
+    searchedCity,
+    wikiReloadKey,
+  ]);
 
   const distanceFromCity = useMemo(() => {
     if (
@@ -233,6 +286,13 @@ export function AttractionDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
+        <PlaceWikipediaSection
+          story={wikiStory}
+          loading={wikiLoading}
+          error={wikiError}
+          onRetry={() => setWikiReloadKey((value) => value + 1)}
+        />
+
         {showGetYourGuide ? (
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -261,15 +321,14 @@ export function AttractionDetailScreen({ route, navigation }) {
           <OpeningHoursSection place={attraction} loading={detailsLoading} />
         </View>
 
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            About
-          </Text>
-          <Text style={styles.description}>
-            {attraction.description ||
-              'No editorial description is available for this place yet.'}
-          </Text>
-        </View>
+        {!wikiStory?.extract && attraction.description ? (
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              About
+            </Text>
+            <Text style={styles.description}>{attraction.description}</Text>
+          </View>
+        ) : null}
 
         {showReviews ? (
           <View style={styles.section}>
