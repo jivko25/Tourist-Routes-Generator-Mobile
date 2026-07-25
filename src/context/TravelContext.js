@@ -11,7 +11,7 @@ import {
   storageService,
 } from '../services/storageService';
 import { createSavedRoute } from '../types/savedRoute';
-import { createVisit } from '../types/visit';
+import { createVisit, normalizeVisit } from '../types/visit';
 import { generateGoogleMapsRoute } from '../services/mapsService';
 import {
   MAX_SEARCH_RADIUS_METERS,
@@ -62,7 +62,14 @@ export function TravelProvider({ children }) {
         setSelectedAttractions(savedAttractions);
         setSettings(savedSettings);
         setSavedRoutes(routes);
-        setVisits(savedVisits);
+        setVisits(
+          (savedVisits || [])
+            .map((item) => normalizeVisit(item))
+            .filter(
+              (item) =>
+                item.countryCode && !String(item.id || '').startsWith('demo_')
+            )
+        );
         if (lastCity) {
           setSearchedCity(lastCity.name);
           setCityCoordinates({
@@ -160,20 +167,123 @@ export function TravelProvider({ children }) {
       const existingCountryMark = visits.find(
         (visit) =>
           String(visit.countryCode).toUpperCase() === code &&
-          !visit.placeName &&
+          visit.kind === 'country' &&
           visit.source === 'manual'
       );
       if (existingCountryMark) return existingCountryMark;
 
       return addVisit({
+        kind: 'country',
         countryCode: code,
-        placeName: null,
-        cityName: extras.cityName || null,
         source: 'manual',
         visitedAt: extras.visitedAt,
       });
     },
     [addVisit, visits]
+  );
+
+  const markCityVisited = useCallback(
+    (countryCode, city, extras = {}) => {
+      const code = String(countryCode || '')
+        .trim()
+        .toUpperCase();
+      const cityName = String(city?.name || city || '').trim();
+      if (!code || !cityName) return null;
+
+      const existing = visits.find(
+        (visit) =>
+          String(visit.countryCode).toUpperCase() === code &&
+          visit.kind === 'city' &&
+          String(visit.cityName || '').toLowerCase() === cityName.toLowerCase()
+      );
+      if (existing) return existing;
+
+      return addVisit({
+        kind: 'city',
+        countryCode: code,
+        cityName,
+        cityLatitude:
+          typeof city?.latitude === 'number' ? city.latitude : null,
+        cityLongitude:
+          typeof city?.longitude === 'number' ? city.longitude : null,
+        source: extras.source || 'manual',
+        visitedAt: extras.visitedAt,
+      });
+    },
+    [addVisit, visits]
+  );
+
+  /**
+   * Log an attraction/stop arrival. Used by live trip tracking (#9).
+   * Also ensures the parent city is marked visited.
+   */
+  const recordPlaceVisit = useCallback(
+    (data) => {
+      const code = String(data?.countryCode || '')
+        .trim()
+        .toUpperCase();
+      const placeName = String(data?.placeName || data?.name || '').trim();
+      if (!code || !placeName) {
+        throw new Error('countryCode and placeName are required.');
+      }
+
+      const cityName = data?.cityName
+        ? String(data.cityName).trim()
+        : null;
+
+      if (cityName) {
+        markCityVisited(
+          code,
+          {
+            name: cityName,
+            latitude: data.cityLatitude,
+            longitude: data.cityLongitude,
+          },
+          { source: data.source || 'trip' }
+        );
+      }
+
+      const placeId = data.placeId || data.attractionId || null;
+      if (placeId) {
+        const duplicate = visits.find(
+          (visit) =>
+            visit.kind === 'place' &&
+            visit.placeId &&
+            visit.placeId === placeId
+        );
+        if (duplicate) return duplicate;
+      }
+
+      return addVisit({
+        kind: 'place',
+        countryCode: code,
+        cityName,
+        cityLatitude: data.cityLatitude ?? null,
+        cityLongitude: data.cityLongitude ?? null,
+        placeId,
+        placeName,
+        placeLatitude: data.latitude ?? data.placeLatitude ?? null,
+        placeLongitude: data.longitude ?? data.placeLongitude ?? null,
+        routeId: data.routeId || null,
+        source: data.source || 'trip',
+        visitedAt: data.visitedAt,
+      });
+    },
+    [addVisit, markCityVisited, visits]
+  );
+
+  const isCityVisited = useCallback(
+    (countryCode, cityName) => {
+      const code = String(countryCode || '').toUpperCase();
+      const city = String(cityName || '').trim().toLowerCase();
+      if (!code || !city) return false;
+      return visits.some(
+        (visit) =>
+          String(visit.countryCode).toUpperCase() === code &&
+          String(visit.cityName || '').trim().toLowerCase() === city
+      );
+    },
+    [visits]
   );
 
   const removeVisitsForCountry = useCallback((countryCode) => {
@@ -372,6 +482,9 @@ export function TravelProvider({ children }) {
       getVisitsForCountry,
       addVisit,
       markCountryVisited,
+      markCityVisited,
+      recordPlaceVisit,
+      isCityVisited,
       removeVisitsForCountry,
       deleteVisit,
     }),
@@ -400,6 +513,9 @@ export function TravelProvider({ children }) {
       getVisitsForCountry,
       addVisit,
       markCountryVisited,
+      markCityVisited,
+      recordPlaceVisit,
+      isCityVisited,
       removeVisitsForCountry,
       deleteVisit,
     ]

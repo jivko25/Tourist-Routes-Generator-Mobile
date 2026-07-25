@@ -20,7 +20,9 @@
   - [x] Локални visits в AsyncStorage + Mark as visited / Clear
   - [x] Curved bottom tab (AI FAB + Explore / Saved / Map; готов за 5-ти бутон)
   - [x] Top cities от `GET /api/countries/:code` → tap → Attractions (без geocode)
-  - [ ] Автоматично логване на места от live trip (#9)
+  - [x] Visit schema: `kind: country | city | place` (+ placeId, coords, routeId) — готов за live trip
+  - [ ] UI: mark city visited + badge в списъка с градове
+  - [ ] Автоматично `recordPlaceVisit` при arrival на спирка (#9)
 - [ ] **12. Booking.com affiliate в чата** — хотели през партньорски линкове (като GYG за activities), с disclosure
 - [ ] **13. Премахване на полети от чата** — няма ясен flight affiliate; махни transport/flights от parse UI, orchestrator stubs и placeholder copy
 - [ ] **14. Clarifying questions в AI чата (бекенд)** — slot-filling: ако липсват критични данни, питай преди orchestration (не „познавай“)
@@ -34,13 +36,17 @@
 2. В background се следи локацията (геофенс около **следващата** точка; battery-friendly, не непрекъснат GPS stream).
 3. При пристигане → push: „Пристигна на [място]“.
 4. Отваряне на push → повече информация за текущото място → продължаване към следващата точка по същия начин.
-5. Локално се записва посещение: място + дата/час (+ държава/град ако е налично).
-6. На visited картата се оцветява съответната държава; tap → „къде съм бил в тази страна“.
+5. Локално се записва visit:
+   - `kind: 'place'` за забележителността (placeId, placeName, coords, routeId)
+   - при нужда и `kind: 'city'` за града
+   - държавата се оцветява от всеки visit с този `countryCode`
+6. На visited картата: държава → градове (visited badge) → места в града.
 
 Етапи (препоръчително):
-1. Arrival detection + local visit log
-2. Push + place detail deep link
-3. Country/city map coloring от реални посещения
+1. Visit schema (готово) + ръчен mark city
+2. Arrival detection → `recordPlaceVisit`
+3. Push + place detail deep link
+4. Map UI: country / city / place drill-down
 
 ## Бележки
 
@@ -48,11 +54,10 @@
 - #6: AsyncStorage + NetInfo — преглед на saved routes офлайн; нови търсения/Maps directions изискват интернет. Пълни offline map tiles не са част от Google Maps SDK в Expo.
 - #3: системен Share sheet с Google Maps directions URL (Route + Saved).
 - #8: текущо **Pexels API** (search, няколко снимки/място + attribution). Без Places Photo SKU.
-- #9: `expo-location` geofencing / background location + `expo-notifications`. Нужни: foreground+background permission, radius ~80–150 m, debounce 30–60 сек в зоната (GPS drift), дедуп per stop. Активен само докато trip е „active“. iOS е по-строг (permission copy, App Store review). Deep link от нотификацията към place detail. Offline: запис локално.
-- #10: Chat таб (AI); Route е stack екран (от Explore / Attractions / Saved). Saved остава в bottom nav.
-- #11: съществуващо SVG world-map приложение може да се merge-не като вторичен таб/секция („My Map“ / „Been“), не като главен фокус. Автоматично mark от завършени/посетени спирки; ръчен tap по желание. По-късно: споделяне на картата.
-  - Имплементирано: `VisitedMapScreen` + `@svg-maps/world` + visits в AsyncStorage; ръчен „Mark as visited“. Curved tab: Explore / Saved / AI FAB / Map.
-  - Остава: auto visits от live tracking (#9).
+- #9: `expo-location` geofencing / background location + `expo-notifications`. При arrival викай `recordPlaceVisit({ countryCode, cityName, placeId, placeName, lat/lng, routeId, source: 'trip' })`. Нужни: foreground+background permission, radius ~80–150 m, debounce 30–60 сек, дедуп per `placeId`. Deep link от нотификацията към place detail.
+- #11: Visit log е единен store с `kind: country | city | place`. Картата оцветява по countryCode; sheet → градове; град → places. Helpers: `markCountryVisited`, `markCityVisited`, `recordPlaceVisit`, `isCityVisited`.
+  - Имплементирано: map UI + countries API + schema.
+  - Остава: city badge UI; auto place visits от #9.
 - #12: Booking.com partner links в hotel branch на orchestrator-а (заместване на hotel placeholder), аналогично на GYG. Disclosure задължителен.
 - #13: махни `transport` / flights от chat UX и stubs; остави activities (GYG) + hotels (Booking #12) + евентуално car_rental ако има affiliate по-късно.
 - #14: бекенд `/api/travel/parse` (или follow-up endpoint) връща `needs_clarification` + 1–3 въпроса; клиентът merge-ва отговорите в същия intent.
@@ -79,4 +84,4 @@
 | 2026-07-25 | #9 разширено | Live tracking + push + visit log; връзка с #11 |
 | 2026-07-25 | #11+#12+#13 | Visited map; Booking.com в чата; премахване на полети |
 | 2026-07-25 | #14+#15 | Clarifying slot-fill в чата; throttling за free-tier лимити |
-| 2026-07-25 | #11 partial | Visited map UI + visits storage + curved tab bar (AI FAB) |
+| 2026-07-25 | #11 visit schema | kind country/city/place + recordPlaceVisit за #9 |

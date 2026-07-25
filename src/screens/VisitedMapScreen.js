@@ -17,7 +17,7 @@ import { usePlaces } from '../hooks/usePlaces';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../utils/worldCountries';
 import { colors, spacing } from '../theme/colors';
 
-const SHEET_HEIGHT = 420;
+const SHEET_HEIGHT = 460;
 const CITIES_LIMIT = 12;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
@@ -57,6 +57,8 @@ export function VisitedMapScreen({ navigation }) {
     visitedCountryCodes,
     markCountryVisited,
     removeVisitsForCountry,
+    getVisitsForCountry,
+    isCityVisited,
   } = useTravel();
   const { isOffline } = useNetworkStatus();
   const { searchCityAtCoordinates, loading: openingCity } = usePlaces();
@@ -103,6 +105,13 @@ export function VisitedMapScreen({ navigation }) {
     () => new Set(visitedCountryCodes),
     [visitedCountryCodes]
   );
+
+  const placeVisits = useMemo(() => {
+    if (!selectedCountry?.id) return [];
+    return getVisitsForCountry(selectedCountry.id).filter(
+      (visit) => visit.kind === 'place' && visit.placeName
+    );
+  }, [selectedCountry?.id, getVisitsForCountry]);
 
   const loadCities = useCallback(async (countryCode, { force = false } = {}) => {
     const code = String(countryCode || '').toUpperCase();
@@ -388,6 +397,12 @@ export function VisitedMapScreen({ navigation }) {
           citiesLoading={citiesLoading}
           citiesError={citiesError}
           openingCityName={openingCityName}
+          placeVisits={placeVisits}
+          isCityVisited={(cityName) =>
+            selectedCountry
+              ? isCityVisited(selectedCountry.id, cityName)
+              : false
+          }
           onRetryCities={() => {
             if (!selectedCountry?.id) return;
             citiesCacheRef.current.delete(
