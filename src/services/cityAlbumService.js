@@ -1,10 +1,12 @@
 /**
  * Pick user photos as Media Library references (no app-sandbox full copies).
+ * Dedupes via MD5 content hash — ImagePicker temp URIs change every pick.
  */
 
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system/legacy';
 import { createCityAlbumPhoto } from '../types/cityAlbum';
 
 async function ensureLibraryPermission() {
@@ -43,24 +45,90 @@ export async function resolveAlbumPhotoUri(photo) {
 }
 
 /**
+ * MD5 fingerprint so the same image is recognized across temp ImagePicker URIs.
+ * @param {string|null|undefined} uri
+ * @returns {Promise<{ contentHash: string|null, fileSize: number|null }>}
+ */
+async function fingerprintUri(uri) {
+  if (!uri) return { contentHash: null, fileSize: null };
+  try {
+    const info = await FileSystem.getInfoAsync(uri, { md5: true, size: true });
+    if (!info?.exists) return { contentHash: null, fileSize: null };
+    return {
+      contentHash: info.md5 ? String(info.md5).toLowerCase() : null,
+      fileSize:
+        typeof info.size === 'number' && info.size > 0 ? info.size : null,
+    };
+  } catch {
+    return { contentHash: null, fileSize: null };
+  }
+}
+
+/**
+ * Attach a stable contentHash (and size) to a photo reference.
+ * @param {import('../types/cityAlbum').CityAlbumPhoto} photo
+ */
+export async function enrichPhotoFingerprint(photo) {
+  const base = createCityAlbumPhoto(photo || {});
+  if (base.contentHash) return base;
+
+  const uri = await resolveAlbumPhotoUri(base);
+  const { contentHash, fileSize } = await fingerprintUri(uri);
+  return createCityAlbumPhoto({
+    ...base,
+    contentHash: contentHash || base.contentHash,
+    fileSize: fileSize || base.fileSize,
+    uri: uri || base.uri,
+  });
+}
+
+/**
+ * @param {import('../types/cityAlbum').CityAlbumPhoto[]} photos
+ */
+export async function enrichPhotosFingerprints(photos = []) {
+  const enriched = [];
+  for (const photo of photos) {
+    // Sequential: avoids hammering disk with many large MD5 reads at once.
+    // eslint-disable-next-line no-await-in-loop
+    enriched.push(await enrichPhotoFingerprint(photo));
+  }
+  return enriched;
+}
+
+/**
  * Persist a camera capture into the system gallery, then return a reference.
  * @param {string} tempUri
  */
 async function referenceFromCameraUri(tempUri) {
   const permission = await MediaLibrary.requestPermissionsAsync();
   if (!permission.granted) {
-    // Still keep the temp uri so the user sees the photo this session.
-    return createCityAlbumPhoto({ uri: tempUri, assetId: null });
+    const finger = await fingerprintUri(tempUri);
+    return createCityAlbumPhoto({
+      uri: tempUri,
+      assetId: null,
+      contentHash: finger.contentHash,
+      fileSize: finger.fileSize,
+    });
   }
 
   try {
     const asset = await MediaLibrary.createAssetAsync(tempUri);
+    const uri = asset?.uri || tempUri;
+    const finger = await fingerprintUri(uri);
     return createCityAlbumPhoto({
       assetId: asset?.id || null,
-      uri: asset?.uri || tempUri,
+      uri,
+      contentHash: finger.contentHash,
+      fileSize: finger.fileSize,
     });
   } catch {
-    return createCityAlbumPhoto({ uri: tempUri, assetId: null });
+    const finger = await fingerprintUri(tempUri);
+    return createCityAlbumPhoto({
+      uri: tempUri,
+      assetId: null,
+      contentHash: finger.contentHash,
+      fileSize: finger.fileSize,
+    });
   }
 }
 
@@ -68,6 +136,8 @@ function photoFromPickerAsset(asset) {
   return createCityAlbumPhoto({
     assetId: asset?.assetId || null,
     uri: asset?.uri || null,
+    fileName: asset?.fileName || null,
+    fileSize: asset?.fileSize ?? null,
   });
 }
 
@@ -94,9 +164,12 @@ export async function pickPhotosFromLibrary({ selectionLimit = 12 } = {}) {
   });
 
   if (result.canceled || !result.assets?.length) return [];
-  return result.assets
+
+  const mapped = result.assets
     .map(photoFromPickerAsset)
     .filter((photo) => photo.assetId || photo.uri);
+
+  return enrichPhotosFingerprints(mapped);
 }
 
 /**
@@ -122,11 +195,10 @@ export async function capturePhotoForAlbum() {
   if (result.canceled || !result.assets?.[0]?.uri) return [];
 
   const asset = result.assets[0];
-  // Camera returns a temp file — prefer linking via Media Library when possible.
   if (Platform.OS !== 'web') {
     const referenced = await referenceFromCameraUri(asset.uri);
-    return [referenced];
+    return [await enrichPhotoFingerprint(referenced)];
   }
 
-  return [photoFromPickerAsset(asset)];
+  return enrichPhotosFingerprints([photoFromPickerAsset(asset)]);
 }

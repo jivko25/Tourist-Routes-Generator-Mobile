@@ -16,6 +16,7 @@ import {
   createCityAlbum,
   createCityAlbumPhoto,
   makeAlbumKey,
+  photoIdentityKeys,
 } from '../types/cityAlbum';
 import { generateGoogleMapsRoute } from '../services/mapsService';
 import {
@@ -345,46 +346,86 @@ export function TravelProvider({ children }) {
         .trim()
         .toUpperCase();
       const city = String(cityName || '').trim();
-      if (!code || !city || !photos?.length) return;
+      if (!code || !city || !photos?.length) {
+        return { added: 0, skipped: 0 };
+      }
 
       const key = makeAlbumKey(code, city);
       const incoming = photos.map((item) => createCityAlbumPhoto(item));
+      const result = { added: 0, skipped: 0 };
 
       setCityAlbums((current) => {
-        const existing = current[key]
-          ? createCityAlbum(current[key])
-          : createCityAlbum({
-              countryCode: code,
-              countryName: meta.countryName || getCountryName(code) || code,
-              cityName: city,
-              photos: [],
-            });
+        const stored = current[key] ? createCityAlbum(current[key]) : null;
+        const basePhotos = Array.isArray(meta.existingPhotos)
+          ? meta.existingPhotos.map((item) => createCityAlbumPhoto(item))
+          : stored?.photos || [];
 
-        const seen = new Set(
-          existing.photos.map(
-            (photo) => photo.assetId || photo.uri || photo.id
-          )
-        );
-        const mergedPhotos = [...existing.photos];
-        incoming.forEach((photo) => {
-          const dedupeKey = photo.assetId || photo.uri || photo.id;
-          if (seen.has(dedupeKey)) return;
-          seen.add(dedupeKey);
-          mergedPhotos.push(photo);
+        const existing = createCityAlbum({
+          countryCode: code,
+          countryName:
+            meta.countryName ||
+            stored?.countryName ||
+            getCountryName(code) ||
+            code,
+          cityName: city,
+          photos: basePhotos,
         });
+
+        const seen = new Set();
+        existing.photos.forEach((photo) => {
+          photoIdentityKeys(photo).forEach((identity) => seen.add(identity));
+        });
+
+        const mergedPhotos = [...existing.photos];
+        let added = 0;
+        let skipped = 0;
+
+        incoming.forEach((photo) => {
+          const identities = photoIdentityKeys(photo);
+          const isDuplicate =
+            identities.length > 0 &&
+            identities.some((identity) => seen.has(identity));
+
+          if (isDuplicate) {
+            skipped += 1;
+            return;
+          }
+
+          identities.forEach((identity) => seen.add(identity));
+          mergedPhotos.push(photo);
+          added += 1;
+        });
+
+        result.added = added;
+        result.skipped = skipped;
+
+        if (added === 0 && !Array.isArray(meta.existingPhotos)) {
+          return current;
+        }
+
+        // Persist even when only backfilling hashes (added === 0 but existingPhotos provided).
+        if (added === 0 && Array.isArray(meta.existingPhotos)) {
+          const sameLength = (stored?.photos?.length || 0) === mergedPhotos.length;
+          const hashesUnchanged =
+            sameLength &&
+            mergedPhotos.every(
+              (photo, index) =>
+                photo.contentHash === stored?.photos?.[index]?.contentHash
+            );
+          if (hashesUnchanged) return current;
+        }
 
         return {
           ...current,
           [key]: createCityAlbum({
             ...existing,
-            countryName:
-              meta.countryName || existing.countryName || getCountryName(code),
-            cityName: city,
             photos: mergedPhotos,
             updatedAt: new Date().toISOString(),
           }),
         };
       });
+
+      return result;
     },
     []
   );
@@ -406,6 +447,44 @@ export function TravelProvider({ children }) {
           ...current,
           [key]: createCityAlbum({
             ...existing,
+            photos: nextPhotos,
+            updatedAt: new Date().toISOString(),
+          }),
+        };
+      });
+    },
+    []
+  );
+
+  const replaceCityAlbumPhotos = useCallback(
+    (countryCode, cityName, photos, meta = {}) => {
+      const code = String(countryCode || '')
+        .trim()
+        .toUpperCase();
+      const city = String(cityName || '').trim();
+      if (!code || !city) return;
+
+      const key = makeAlbumKey(code, city);
+      setCityAlbums((current) => {
+        const existing = current[key];
+        const nextPhotos = (photos || []).map((item) =>
+          createCityAlbumPhoto(item)
+        );
+        if (nextPhotos.length === 0) {
+          if (!existing) return current;
+          const { [key]: _removed, ...rest } = current;
+          return rest;
+        }
+        return {
+          ...current,
+          [key]: createCityAlbum({
+            countryCode: code,
+            countryName:
+              meta.countryName ||
+              existing?.countryName ||
+              getCountryName(code) ||
+              code,
+            cityName: city,
             photos: nextPhotos,
             updatedAt: new Date().toISOString(),
           }),
@@ -614,6 +693,7 @@ export function TravelProvider({ children }) {
       getCityPhotoCount,
       addPhotosToCityAlbum,
       removePhotoFromCityAlbum,
+      replaceCityAlbumPhotos,
     }),
     [
       searchedCity,
@@ -650,6 +730,7 @@ export function TravelProvider({ children }) {
       getCityPhotoCount,
       addPhotosToCityAlbum,
       removePhotoFromCityAlbum,
+      replaceCityAlbumPhotos,
     ]
   );
 

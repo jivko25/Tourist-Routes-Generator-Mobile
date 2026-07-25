@@ -18,6 +18,7 @@ import {
 import { useTravel } from '../context/TravelContext';
 import {
   capturePhotoForAlbum,
+  enrichPhotosFingerprints,
   pickPhotosFromLibrary,
   resolveAlbumPhotoUri,
 } from '../services/cityAlbumService';
@@ -72,9 +73,41 @@ export function CityPhotosScreen({ route }) {
   const appendPhotos = useCallback(
     async (incoming) => {
       if (!incoming?.length) return;
-      addPhotosToCityAlbum(countryCode, cityName, incoming, { countryName });
+
+      const existing = getCityAlbum(countryCode, cityName)?.photos || [];
+      const [backfilledExisting, enrichedIncoming] = await Promise.all([
+        enrichPhotosFingerprints(existing),
+        enrichPhotosFingerprints(incoming),
+      ]);
+
+      const { added, skipped } = addPhotosToCityAlbum(
+        countryCode,
+        cityName,
+        enrichedIncoming,
+        {
+          countryName,
+          // Use hashed existing list in the same update (avoids stale state race).
+          existingPhotos: backfilledExisting,
+        }
+      );
+
+      if (skipped > 0 && added === 0) {
+        Alert.alert(t('album.duplicatesTitle'), t('album.duplicatesAllBody'));
+      } else if (skipped > 0) {
+        Alert.alert(
+          t('album.duplicatesTitle'),
+          t('album.duplicatesPartialBody', { added, skipped })
+        );
+      }
     },
-    [addPhotosToCityAlbum, countryCode, cityName, countryName]
+    [
+      addPhotosToCityAlbum,
+      countryCode,
+      cityName,
+      countryName,
+      getCityAlbum,
+      t,
+    ]
   );
 
   const handleAdd = useCallback(() => {

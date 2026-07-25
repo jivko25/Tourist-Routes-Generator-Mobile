@@ -138,7 +138,10 @@
     "photoCount_other": "{{count}} снимки",
     "removeTitle": "Премахване от албума?",
     "removeBody": "Снимката остава в галерията. Маха се само връзката в Travel Go.",
-    "remove": "Премахни"
+    "remove": "Премахни",
+    "duplicatesTitle": "Вече е в албума",
+    "duplicatesAllBody": "Тези снимки вече са свързани с този град.",
+    "duplicatesPartialBody": "Добавени {{added}}. Пропуснати {{skipped}} — вече са в албума."
   },
   "detail": {
     "about": "За мястото",
