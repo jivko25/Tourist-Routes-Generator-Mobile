@@ -43,7 +43,13 @@ function CountryPath({ id, name, d }) {
   );
 }
 
-export function WorldMapSvg({ visitedIds = [], selectedId = null, onCountryPress }) {
+export function WorldMapSvg({
+  width = '100%',
+  height = '100%',
+  visitedIds = [],
+  selectedId = null,
+  onCountryPress,
+}) {
   const value = useMemo(
     () => ({
       visitedIds,
@@ -56,8 +62,8 @@ export function WorldMapSvg({ visitedIds = [], selectedId = null, onCountryPress
   return (
     <MapInteractionContext.Provider value={value}>
       <Svg
-        width="100%"
-        height="100%"
+        width={width}
+        height={height}
         viewBox={WORLD_VIEW_BOX}
         preserveAspectRatio="xMidYMid meet"
       >
