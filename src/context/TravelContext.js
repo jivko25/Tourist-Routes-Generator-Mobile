@@ -12,6 +12,11 @@ import {
 } from '../services/storageService';
 import { createSavedRoute } from '../types/savedRoute';
 import { createVisit, normalizeVisit } from '../types/visit';
+import {
+  createCityAlbum,
+  createCityAlbumPhoto,
+  makeAlbumKey,
+} from '../types/cityAlbum';
 import { generateGoogleMapsRoute } from '../services/mapsService';
 import {
   MAX_SEARCH_RADIUS_METERS,
@@ -41,6 +46,7 @@ export function TravelProvider({ children }) {
   const [selectedAttractions, setSelectedAttractions] = useState([]);
   const [savedRoutes, setSavedRoutes] = useState([]);
   const [visits, setVisits] = useState([]);
+  const [cityAlbums, setCityAlbums] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -49,14 +55,21 @@ export function TravelProvider({ children }) {
 
     async function hydrate() {
       try {
-        const [savedAttractions, lastCity, savedSettings, routes, savedVisits] =
-          await Promise.all([
-            storageService.loadSelectedAttractions(),
-            storageService.loadLastCity(),
-            storageService.loadSettings(),
-            storageService.loadSavedRoutes(),
-            storageService.loadVisits(),
-          ]);
+        const [
+          savedAttractions,
+          lastCity,
+          savedSettings,
+          routes,
+          savedVisits,
+          savedAlbums,
+        ] = await Promise.all([
+          storageService.loadSelectedAttractions(),
+          storageService.loadLastCity(),
+          storageService.loadSettings(),
+          storageService.loadSavedRoutes(),
+          storageService.loadVisits(),
+          storageService.loadCityAlbums(),
+        ]);
 
         if (!mounted) return;
 
@@ -71,6 +84,11 @@ export function TravelProvider({ children }) {
                 item.countryCode && !String(item.id || '').startsWith('demo_')
             )
         );
+        const normalizedAlbums = {};
+        Object.entries(savedAlbums || {}).forEach(([key, album]) => {
+          normalizedAlbums[key] = createCityAlbum(album);
+        });
+        setCityAlbums(normalizedAlbums);
         if (lastCity) {
           setSearchedCity(lastCity.name);
           setCityCoordinates({
@@ -118,6 +136,13 @@ export function TravelProvider({ children }) {
       console.warn('Failed to persist visits:', error);
     });
   }, [visits, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    storageService.saveCityAlbums(cityAlbums).catch((error) => {
+      console.warn('Failed to persist city albums:', error);
+    });
+  }, [cityAlbums, isHydrated]);
 
   const visitedCountryCodes = useMemo(() => {
     const codes = new Set();
@@ -298,6 +323,98 @@ export function TravelProvider({ children }) {
     setVisits((current) => current.filter((visit) => visit.id !== visitId));
   }, []);
 
+  const getCityAlbum = useCallback(
+    (countryCode, cityName) => {
+      const key = makeAlbumKey(countryCode, cityName);
+      return cityAlbums[key] || null;
+    },
+    [cityAlbums]
+  );
+
+  const getCityPhotoCount = useCallback(
+    (countryCode, cityName) => {
+      const album = getCityAlbum(countryCode, cityName);
+      return album?.photos?.length || 0;
+    },
+    [getCityAlbum]
+  );
+
+  const addPhotosToCityAlbum = useCallback(
+    (countryCode, cityName, photos, meta = {}) => {
+      const code = String(countryCode || '')
+        .trim()
+        .toUpperCase();
+      const city = String(cityName || '').trim();
+      if (!code || !city || !photos?.length) return;
+
+      const key = makeAlbumKey(code, city);
+      const incoming = photos.map((item) => createCityAlbumPhoto(item));
+
+      setCityAlbums((current) => {
+        const existing = current[key]
+          ? createCityAlbum(current[key])
+          : createCityAlbum({
+              countryCode: code,
+              countryName: meta.countryName || getCountryName(code) || code,
+              cityName: city,
+              photos: [],
+            });
+
+        const seen = new Set(
+          existing.photos.map(
+            (photo) => photo.assetId || photo.uri || photo.id
+          )
+        );
+        const mergedPhotos = [...existing.photos];
+        incoming.forEach((photo) => {
+          const dedupeKey = photo.assetId || photo.uri || photo.id;
+          if (seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+          mergedPhotos.push(photo);
+        });
+
+        return {
+          ...current,
+          [key]: createCityAlbum({
+            ...existing,
+            countryName:
+              meta.countryName || existing.countryName || getCountryName(code),
+            cityName: city,
+            photos: mergedPhotos,
+            updatedAt: new Date().toISOString(),
+          }),
+        };
+      });
+    },
+    []
+  );
+
+  const removePhotoFromCityAlbum = useCallback(
+    (countryCode, cityName, photoId) => {
+      const key = makeAlbumKey(countryCode, cityName);
+      setCityAlbums((current) => {
+        const existing = current[key];
+        if (!existing) return current;
+        const nextPhotos = (existing.photos || []).filter(
+          (photo) => photo.id !== photoId
+        );
+        if (nextPhotos.length === 0) {
+          const { [key]: _removed, ...rest } = current;
+          return rest;
+        }
+        return {
+          ...current,
+          [key]: createCityAlbum({
+            ...existing,
+            photos: nextPhotos,
+            updatedAt: new Date().toISOString(),
+          }),
+        };
+      });
+    },
+    []
+  );
+
   const setSearchResult = useCallback((city, places) => {
     setSearchedCity(city.name);
     setCityCoordinates({
@@ -468,6 +585,7 @@ export function TravelProvider({ children }) {
       selectedAttractions,
       savedRoutes,
       visits,
+      cityAlbums,
       visitedCountryCodes,
       settings,
       isHydrated,
@@ -492,6 +610,10 @@ export function TravelProvider({ children }) {
       isCityVisited,
       removeVisitsForCountry,
       deleteVisit,
+      getCityAlbum,
+      getCityPhotoCount,
+      addPhotosToCityAlbum,
+      removePhotoFromCityAlbum,
     }),
     [
       searchedCity,
@@ -500,6 +622,7 @@ export function TravelProvider({ children }) {
       selectedAttractions,
       savedRoutes,
       visits,
+      cityAlbums,
       visitedCountryCodes,
       settings,
       isHydrated,
@@ -523,6 +646,10 @@ export function TravelProvider({ children }) {
       isCityVisited,
       removeVisitsForCountry,
       deleteVisit,
+      getCityAlbum,
+      getCityPhotoCount,
+      addPhotosToCityAlbum,
+      removePhotoFromCityAlbum,
     ]
   );
 

@@ -11,6 +11,7 @@ import { SavedRoutesScreen } from '../screens/SavedRoutesScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { VisitedMapScreen } from '../screens/VisitedMapScreen';
+import { CityPhotosScreen } from '../screens/CityPhotosScreen';
 import { CurvedTabBar } from '../components/navigation/CurvedTabBar';
 import { useTravel } from '../context/TravelContext';
 import { colors } from '../theme/colors';
@@ -125,6 +126,15 @@ export function AppNavigator() {
           component={AttractionDetailScreen}
           options={({ route }) => ({
             title: route.params?.title || t('stack.attraction'),
+          })}
+        />
+        <Stack.Screen
+          name="CityPhotos"
+          component={CityPhotosScreen}
+          options={({ route }) => ({
+            title: route.params?.cityName
+              ? t('stack.cityPhotos', { city: route.params.cityName })
+              : t('stack.photos'),
           })}
         />
         <Stack.Screen

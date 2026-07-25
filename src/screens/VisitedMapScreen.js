@@ -18,7 +18,7 @@ import { usePlaces } from '../hooks/usePlaces';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../utils/worldCountries';
 import { colors, spacing } from '../theme/colors';
 
-const SHEET_HEIGHT = 460;
+const SHEET_HEIGHT = 520;
 const CITIES_LIMIT = 12;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
@@ -61,6 +61,7 @@ export function VisitedMapScreen({ navigation }) {
     removeVisitsForCountry,
     getVisitsForCountry,
     isCityVisited,
+    getCityPhotoCount,
   } = useTravel();
   const { isOffline } = useNetworkStatus();
   const { searchCityAtCoordinates, loading: openingCity } = usePlaces();
@@ -265,6 +266,20 @@ export function VisitedMapScreen({ navigation }) {
     ]
   );
 
+  const handleCityPhotosPress = useCallback(
+    (city) => {
+      if (!city?.name || !selectedCountry?.id) return;
+      navigation.navigate('CityPhotos', {
+        countryCode: selectedCountry.id,
+        countryName: selectedCountry.name || selectedCountry.id,
+        cityName: city.name,
+        latitude: city.latitude,
+        longitude: city.longitude,
+      });
+    },
+    [navigation, selectedCountry]
+  );
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -401,6 +416,11 @@ export function VisitedMapScreen({ navigation }) {
               ? isCityVisited(selectedCountry.id, cityName)
               : false
           }
+          getCityPhotoCount={(cityName) =>
+            selectedCountry
+              ? getCityPhotoCount(selectedCountry.id, cityName)
+              : 0
+          }
           onRetryCities={() => {
             if (!selectedCountry?.id) return;
             citiesCacheRef.current.delete(
@@ -409,6 +429,7 @@ export function VisitedMapScreen({ navigation }) {
             setCitiesRequestKey((key) => key + 1);
           }}
           onCityPress={handleCityPress}
+          onCityPhotosPress={handleCityPhotosPress}
           onClose={closeSheet}
           onMarkVisited={() => {
             if (!selectedCountry) return;
