@@ -3,6 +3,7 @@ import { geocodeCity } from '../services/geocodingService';
 import { searchNearbyAttractions } from '../services/placesService';
 import { enrichAttractionsWithImages } from '../services/pexelsPhotoService';
 import { useTravel } from '../context/TravelContext';
+import { createCity } from '../types/attraction';
 import { resolvePlaceTypes } from '../constants/placeCategories';
 
 /**
@@ -88,6 +89,72 @@ export function usePlaces() {
     ]
   );
 
+  /**
+   * Load attractions for a city that already has coordinates (no geocoding).
+   * Used by visited-map city taps.
+   *
+   * @param {{ name: string, latitude: number, longitude: number, id?: string }} place
+   */
+  const searchCityAtCoordinates = useCallback(
+    async (place, overrides = {}) => {
+      const name = String(place?.name || '').trim();
+      const latitude = Number(place?.latitude);
+      const longitude = Number(place?.longitude);
+
+      if (!name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        const err = new Error('City name and coordinates are required.');
+        setError(err.message);
+        throw err;
+      }
+
+      setLoading(true);
+      setError(null);
+      clearRoute();
+
+      try {
+        const categories =
+          overrides.selectedCategories || settings.selectedCategories;
+        const radius =
+          overrides.searchRadiusMeters ?? settings.searchRadiusMeters;
+
+        const city = createCity({
+          id: place.id || `city_${name.toLowerCase().replace(/\s+/g, '_')}`,
+          name,
+          latitude,
+          longitude,
+        });
+
+        const attractions = await searchNearbyAttractions(
+          { latitude, longitude },
+          {
+            radius,
+            includedTypes: resolvePlaceTypes(categories),
+          }
+        );
+
+        return {
+          city,
+          attractions: await publishWithImages(city, attractions),
+        };
+      } catch (err) {
+        const message =
+          err?.response?.data?.error?.message ||
+          err?.message ||
+          'Something went wrong while searching.';
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      publishWithImages,
+      clearRoute,
+      settings.searchRadiusMeters,
+      settings.selectedCategories,
+    ]
+  );
+
   const refreshAttractions = useCallback(
     async (cityCoordinates, cityName, overrides = {}) => {
       if (!cityCoordinates) {
@@ -138,6 +205,7 @@ export function usePlaces() {
     error,
     setError,
     searchCityAttractions,
+    searchCityAtCoordinates,
     refreshAttractions,
   };
 }

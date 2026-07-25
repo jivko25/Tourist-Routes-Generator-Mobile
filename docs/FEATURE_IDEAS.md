@@ -19,6 +19,7 @@
   - [x] Базов екран + SVG map (`@svg-maps/world`) + pan/zoom + sheet
   - [x] Локални visits в AsyncStorage + Mark as visited / Clear
   - [x] Curved bottom tab (AI FAB + Explore / Saved / Map; готов за 5-ти бутон)
+  - [x] Top cities от `GET /api/countries/:code` → tap → Attractions (без geocode)
   - [ ] Автоматично логване на места от live trip (#9)
 - [ ] **12. Booking.com affiliate в чата** — хотели през партньорски линкове (като GYG за activities), с disclosure
 - [ ] **13. Премахване на полети от чата** — няма ясен flight affiliate; махни transport/flights от parse UI, orchestrator stubs и placeholder copy

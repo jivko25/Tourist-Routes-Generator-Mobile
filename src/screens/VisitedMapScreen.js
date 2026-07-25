@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   PanResponder,
   StyleSheet,
@@ -7,13 +8,17 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getCountryDetails } from '../api/travelApi';
 import { CountryDetailSheet } from '../components/world/CountryDetailSheet';
 import { WorldMapSvg } from '../components/world/WorldMapSvg';
 import { useTravel } from '../context/TravelContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { usePlaces } from '../hooks/usePlaces';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../utils/worldCountries';
 import { colors, spacing } from '../theme/colors';
 
-const SHEET_HEIGHT = 320;
+const SHEET_HEIGHT = 420;
+const CITIES_LIMIT = 12;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
 const MAP_ASPECT = WORLD_WIDTH / WORLD_HEIGHT;
@@ -38,7 +43,6 @@ function clampPan(panX, panY, scale, fitted, container) {
   const minY = Math.min(0, container.height - displayH);
   const maxY = Math.max(0, container.height - displayH);
 
-  // Centered origin + pan, then clamp so the map stays covering the viewport when zoomed.
   const centeredX = (container.width - displayW) / 2 + panX;
   const centeredY = (container.height - displayH) / 2 + panY;
 
@@ -48,21 +52,27 @@ function clampPan(panX, panY, scale, fitted, container) {
   };
 }
 
-export function VisitedMapScreen() {
+export function VisitedMapScreen({ navigation }) {
   const {
     visitedCountryCodes,
-    getVisitsForCountry,
     markCountryVisited,
     removeVisitsForCountry,
   } = useTravel();
+  const { isOffline } = useNetworkStatus();
+  const { searchCityAtCoordinates, loading: openingCity } = usePlaces();
 
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const citiesCacheRef = useRef(new Map());
 
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [container, setContainer] = useState({ width: 0, height: 0 });
-  // Vector zoom: grow SVG layout size (not transform:scale) so paths stay sharp.
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [cities, setCities] = useState([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [citiesError, setCitiesError] = useState(null);
+  const [citiesRequestKey, setCitiesRequestKey] = useState(0);
+  const [openingCityName, setOpeningCityName] = useState(null);
 
   const scaleRef = useRef(1);
   const panRef = useRef({ x: 0, y: 0 });
@@ -94,11 +104,63 @@ export function VisitedMapScreen() {
     [visitedCountryCodes]
   );
 
-  const countryVisits = useMemo(
-    () =>
-      selectedCountry ? getVisitsForCountry(selectedCountry.id) : [],
-    [selectedCountry, getVisitsForCountry]
-  );
+  const loadCities = useCallback(async (countryCode, { force = false } = {}) => {
+    const code = String(countryCode || '').toUpperCase();
+    if (!code) return;
+
+    if (!force && citiesCacheRef.current.has(code)) {
+      setCities(citiesCacheRef.current.get(code));
+      setCitiesError(null);
+      setCitiesLoading(false);
+      return;
+    }
+
+    if (isOffline) {
+      setCities([]);
+      setCitiesError(
+        'You’re offline. Connect to load top cities for this country.'
+      );
+      setCitiesLoading(false);
+      return;
+    }
+
+    setCitiesLoading(true);
+    setCitiesError(null);
+
+    try {
+      const result = await getCountryDetails(code, CITIES_LIMIT);
+      const list = Array.isArray(result.cities) ? result.cities : [];
+      citiesCacheRef.current.set(code, list);
+      setCities(list);
+    } catch (error) {
+      setCities([]);
+      setCitiesError(
+        error?.message || 'Could not load cities for this country.'
+      );
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, [isOffline]);
+
+  useEffect(() => {
+    if (!selectedCountry?.id) {
+      setCities([]);
+      setCitiesError(null);
+      setCitiesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      if (cancelled) return;
+      await loadCities(selectedCountry.id);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCountry?.id, citiesRequestKey, loadCities]);
 
   const scheduleTransform = useCallback((nextScale, nextPan) => {
     if (frameRef.current != null) return;
@@ -113,7 +175,6 @@ export function VisitedMapScreen() {
         fittedNow,
         containerNow
       );
-      // Store pan relative to centered position for stable gesture math.
       const displayW = fittedNow.width * nextScale;
       const displayH = fittedNow.height * nextScale;
       const relativePan = {
@@ -130,6 +191,8 @@ export function VisitedMapScreen() {
   const openSheet = useCallback(
     ({ id, name, d }) => {
       setSelectedCountry({ id, name, d });
+      setCities([]);
+      setCitiesError(null);
       Animated.timing(sheetAnim, {
         toValue: 1,
         duration: 220,
@@ -144,8 +207,55 @@ export function VisitedMapScreen() {
       toValue: 0,
       duration: 200,
       useNativeDriver: true,
-    }).start(() => setSelectedCountry(null));
+    }).start(() => {
+      setSelectedCountry(null);
+      setOpeningCityName(null);
+    });
   }, [sheetAnim]);
+
+  const handleCityPress = useCallback(
+    async (city) => {
+      if (!city?.name || openingCity || openingCityName) return;
+
+      if (isOffline) {
+        Alert.alert(
+          'You’re offline',
+          'Connect to the internet to load attractions for this city.'
+        );
+        return;
+      }
+
+      setOpeningCityName(city.name);
+      try {
+        const { attractions } = await searchCityAtCoordinates({
+          name: city.name,
+          latitude: city.latitude,
+          longitude: city.longitude,
+          id:
+            city.geonameId != null
+              ? `geoname_${city.geonameId}`
+              : undefined,
+        });
+        navigation.navigate('Attractions', {
+          resultCount: attractions.length,
+        });
+      } catch (error) {
+        Alert.alert(
+          'Could not open city',
+          error?.message || 'Something went wrong while loading attractions.'
+        );
+      } finally {
+        setOpeningCityName(null);
+      }
+    },
+    [
+      isOffline,
+      navigation,
+      openingCity,
+      openingCityName,
+      searchCityAtCoordinates,
+    ]
+  );
 
   const panResponder = useRef(
     PanResponder.create({
@@ -270,11 +380,22 @@ export function VisitedMapScreen() {
 
         <CountryDetailSheet
           country={selectedCountry}
-          visits={countryVisits}
           translateY={sheetTranslateY}
           isVisited={
             selectedCountry ? visitedSet.has(selectedCountry.id) : false
           }
+          cities={cities}
+          citiesLoading={citiesLoading}
+          citiesError={citiesError}
+          openingCityName={openingCityName}
+          onRetryCities={() => {
+            if (!selectedCountry?.id) return;
+            citiesCacheRef.current.delete(
+              String(selectedCountry.id).toUpperCase()
+            );
+            setCitiesRequestKey((key) => key + 1);
+          }}
+          onCityPress={handleCityPress}
           onClose={closeSheet}
           onMarkVisited={() => {
             if (!selectedCountry) return;
