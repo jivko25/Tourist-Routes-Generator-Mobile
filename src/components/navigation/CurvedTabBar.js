@@ -9,6 +9,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
 
 /** Bar content height (excluding safe-area). Layout ready for a 5th peripheral later. */
@@ -23,13 +24,12 @@ const NOTCH_DEPTH = 26;
  * Later: add a 5th (e.g. Profile) on the right side.
  */
 const LEFT_SLOTS = [
-  { key: 'HomeTab', label: 'Explore', icon: 'compass-outline', iconActive: 'compass' },
-  { key: 'SavedTab', label: 'Saved', icon: 'bookmark-outline', iconActive: 'bookmark' },
+  { key: 'HomeTab', labelKey: 'tabs.explore', icon: 'compass-outline', iconActive: 'compass' },
+  { key: 'SavedTab', labelKey: 'tabs.saved', icon: 'bookmark-outline', iconActive: 'bookmark' },
 ];
 
 const RIGHT_SLOTS = [
-  { key: 'MapTab', label: 'Map', icon: 'earth', iconActive: 'earth' },
-  // { key: 'ProfileTab', label: 'Profile', icon: 'account-outline', iconActive: 'account' },
+  { key: 'MapTab', labelKey: 'tabs.map', icon: 'earth', iconActive: 'earth' },
 ];
 
 function buildBarPath(width, height, centerX) {
@@ -57,6 +57,7 @@ function PeripheralButton({
   onPress,
   onLongPress,
   badge,
+  label,
 }) {
   if (!route) {
     return <View style={styles.slot} />;
@@ -69,7 +70,7 @@ function PeripheralButton({
     <Pressable
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
-      accessibilityLabel={options?.tabBarAccessibilityLabel || slot.label}
+      accessibilityLabel={options?.tabBarAccessibilityLabel || label}
       onPress={onPress}
       onLongPress={onLongPress}
       style={({ pressed }) => [styles.slot, pressed && styles.pressed]}
@@ -88,13 +89,14 @@ function PeripheralButton({
         style={[styles.label, isFocused && styles.labelActive]}
         numberOfLines={1}
       >
-        {slot.label}
+        {label}
       </Text>
     </Pressable>
   );
 }
 
 export function CurvedTabBar({ state, descriptors, navigation }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const bottomInset = Math.max(insets.bottom, 8);
@@ -132,6 +134,7 @@ export function CurvedTabBar({ state, descriptors, navigation }) {
         isFocused={isFocused}
         options={options}
         badge={badge}
+        label={t(slot.labelKey)}
         onPress={() => {
           if (!route) return;
           const event = navigation.emit({
@@ -178,7 +181,7 @@ export function CurvedTabBar({ state, descriptors, navigation }) {
           <Pressable
             accessibilityRole="button"
             accessibilityState={chatFocused ? { selected: true } : {}}
-            accessibilityLabel="AI"
+            accessibilityLabel={t('tabs.ai')}
             onPress={() => {
               if (!chatMeta?.route) return;
               const event = navigation.emit({
@@ -203,7 +206,7 @@ export function CurvedTabBar({ state, descriptors, navigation }) {
             />
           </Pressable>
           <Text style={[styles.fabLabel, chatFocused && styles.labelActive]}>
-            AI
+            {t('tabs.ai')}
           </Text>
         </View>
 

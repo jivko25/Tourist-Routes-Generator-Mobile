@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { CountrySilhouette } from './WorldMapSvg';
 import { getApproxPathBounds } from '../../utils/svgPathBounds';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../../utils/worldCountries';
@@ -70,6 +71,7 @@ export function CountryDetailSheet({
   isCityVisited,
   placeVisits = [],
 }) {
+  const { t } = useTranslation();
   const transform = useMemo(
     () => (country?.d ? buildSheetTransform(country.d) : undefined),
     [country?.d]
@@ -84,8 +86,8 @@ export function CountryDetailSheet({
           <Text style={styles.title}>{country.name || country.id}</Text>
           <Text style={styles.subtitle}>
             {isVisited
-              ? `${placeVisits.length} place${placeVisits.length === 1 ? '' : 's'} logged · tap a city`
-              : 'Tap a city to explore'}
+              ? t('map.visitedTapCity', { count: placeVisits.length })
+              : t('map.tapCity')}
           </Text>
         </View>
         <Pressable onPress={onClose} hitSlop={12} style={styles.closeBtn}>
@@ -105,7 +107,7 @@ export function CountryDetailSheet({
       >
         {placeVisits.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Places you’ve been</Text>
+            <Text style={styles.sectionTitle}>{t('map.placesBeen')}</Text>
             {placeVisits.map((visit) => (
               <View key={visit.id} style={styles.placeRow}>
                 <View style={styles.placeIcon}>
@@ -131,7 +133,7 @@ export function CountryDetailSheet({
         ) : null}
 
         <View style={styles.citiesHeader}>
-          <Text style={styles.sectionTitle}>Top cities</Text>
+          <Text style={styles.sectionTitle}>{t('map.topCities')}</Text>
           {citiesLoading ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : null}
@@ -142,14 +144,14 @@ export function CountryDetailSheet({
             <Text style={styles.errorText}>{citiesError}</Text>
             {typeof onRetryCities === 'function' ? (
               <Pressable onPress={onRetryCities} style={styles.retryBtn}>
-                <Text style={styles.retryText}>Retry</Text>
+                <Text style={styles.retryText}>{t('common.retry')}</Text>
               </Pressable>
             ) : null}
           </View>
         ) : null}
 
         {!citiesError && !citiesLoading && cities.length === 0 ? (
-          <Text style={styles.empty}>No cities found for this country.</Text>
+          <Text style={styles.empty}>{t('map.noCities')}</Text>
         ) : null}
 
         {!citiesError &&
@@ -179,12 +181,16 @@ export function CountryDetailSheet({
                     </Text>
                     {visited ? (
                       <View style={styles.visitedBadge}>
-                        <Text style={styles.visitedBadgeText}>Visited</Text>
+                        <Text style={styles.visitedBadgeText}>
+                          {t('map.visitedBadge')}
+                        </Text>
                       </View>
                     ) : null}
                   </View>
                   {pop ? (
-                    <Text style={styles.cityMeta}>Pop. {pop}</Text>
+                    <Text style={styles.cityMeta}>
+                      {t('map.population', { value: pop })}
+                    </Text>
                   ) : null}
                 </View>
                 {busy ? (
@@ -210,7 +216,7 @@ export function CountryDetailSheet({
             ]}
             onPress={onClearCountry}
           >
-            <Text style={styles.secondaryBtnText}>Clear visits</Text>
+            <Text style={styles.secondaryBtnText}>{t('map.clearVisits')}</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -220,7 +226,7 @@ export function CountryDetailSheet({
             ]}
             onPress={onMarkVisited}
           >
-            <Text style={styles.primaryBtnText}>Mark as visited</Text>
+            <Text style={styles.primaryBtnText}>{t('map.markVisited')}</Text>
           </Pressable>
         )}
       </View>

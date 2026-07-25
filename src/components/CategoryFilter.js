@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { PLACE_CATEGORIES } from '../constants/placeCategories';
 import { colors, radii, spacing } from '../theme/colors';
 
@@ -12,6 +13,8 @@ export function CategoryFilter({
   onChange,
   horizontal = true,
 }) {
+  const { t } = useTranslation();
+
   const toggleCategory = (categoryId) => {
     const isSelected = selectedIds.includes(categoryId);
 
@@ -33,7 +36,7 @@ export function CategoryFilter({
         style={[styles.chip, selected && styles.chipSelected]}
       >
         <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-          {category.label}
+          {t(`categories.${category.id}`)}
         </Text>
       </Pressable>
     );

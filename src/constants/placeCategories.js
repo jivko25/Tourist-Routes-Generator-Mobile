@@ -86,17 +86,35 @@ export function resolvePlaceTypes(categoryIds = DEFAULT_PLACE_CATEGORY_IDS) {
 
 /**
  * @param {string[]} categoryIds
+ * @param {(key: string, options?: object) => string} [t]
  * @returns {string}
  */
-export function formatSelectedCategoriesLabel(categoryIds = []) {
+export function formatSelectedCategoriesLabel(categoryIds = [], t) {
+  const translate =
+    typeof t === 'function'
+      ? t
+      : (key, opts) => {
+          if (key === 'categories.count') {
+            return `${opts?.count || 0} categories`;
+          }
+          const match = PLACE_CATEGORIES.find(
+            (item) => `categories.${item.id}` === key
+          );
+          return match?.label || key;
+        };
+
   const selected = PLACE_CATEGORIES.filter((category) =>
     categoryIds.includes(category.id)
   );
 
-  if (selected.length === 0) return 'Tourist';
-  if (selected.length === 1) return selected[0].label;
-  if (selected.length === 2) {
-    return `${selected[0].label} + ${selected[1].label}`;
+  if (selected.length === 0) return translate('categories.tourist');
+  if (selected.length === 1) {
+    return translate(`categories.${selected[0].id}`);
   }
-  return `${selected.length} categories`;
+  if (selected.length === 2) {
+    return `${translate(`categories.${selected[0].id}`)} + ${translate(
+      `categories.${selected[1].id}`
+    )}`;
+  }
+  return translate('categories.count', { count: selected.length });
 }

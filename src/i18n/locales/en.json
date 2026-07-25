@@ -1,0 +1,129 @@
+{
+  "common": {
+    "back": "Back",
+    "save": "Save settings",
+    "saved": "Saved",
+    "dismiss": "Dismiss",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "clear": "Clear",
+    "loading": "Loading…",
+    "offline": "You’re offline"
+  },
+  "tabs": {
+    "explore": "Explore",
+    "saved": "Saved",
+    "ai": "AI",
+    "map": "Map"
+  },
+  "home": {
+    "brand": "Travel Go",
+    "openSettings": "Open settings",
+    "titleDefault": "Discover places.\nBuild your route.",
+    "titleActive": "Your trip is underway.",
+    "subtitleDefault": "Search a city, pick stops, optimize the path, and open it in Google Maps.",
+    "subtitleActive": "Continue planning, or clear the itinerary and start fresh.",
+    "panelStart": "Start exploring",
+    "panelAdd": "Add more places",
+    "placeTypes": "Place types",
+    "tipSettings": "Tip: set start/end addresses in Settings.",
+    "offlineBanner": "Saved routes still open offline. New city searches need internet.",
+    "offlineSearch": "You’re offline. Open a saved route instead — new city searches need internet."
+  },
+  "search": {
+    "placeholder": "Search a city…",
+    "search": "Search"
+  },
+  "settings": {
+    "title": "Settings",
+    "intro": "Set language, route addresses, search radius, and which place types to include when searching a city.",
+    "language": "Language",
+    "languageHint": "App UI and Google Places / Geocoding results follow this language.",
+    "english": "English",
+    "bulgarian": "Български",
+    "routePoints": "Route points",
+    "startAddress": "Start address",
+    "startPlaceholder": "Manastirski Livadi, Bulgaria Blvd 69, 1404 Sofia",
+    "startHelp": "Used as the Google Maps origin when generating a route.",
+    "endAddress": "End address",
+    "endPlaceholder": "Optional destination address",
+    "endHelp": "Used as the Google Maps destination. Leave empty to end at the last attraction.",
+    "transport": "Transport mode",
+    "transportHint": "Used when opening the route in Google Maps.",
+    "categories": "Place categories",
+    "categoriesHint": "Default is Tourist only. Select more types to broaden results.",
+    "active": "Active: {{labels}}",
+    "radius": "Search radius",
+    "radiusCurrent": "Current: {{radius}}",
+    "customRadius": "Custom radius (km)",
+    "radiusError": "Enter a value between {{min}} and {{max}} km.",
+    "radiusInfo": "Places will be searched within {{radius}}."
+  },
+  "travelMode": {
+    "walking": "Walking",
+    "walkingShort": "Walk",
+    "driving": "Driving",
+    "drivingShort": "Car",
+    "bicycling": "Cycling",
+    "bicyclingShort": "Bike",
+    "transit": "Transit",
+    "transitShort": "Transit"
+  },
+  "categories": {
+    "tourist": "Tourist",
+    "museums": "Museums",
+    "art": "Art & Culture",
+    "nature": "Nature & Parks",
+    "landmarks": "Landmarks",
+    "religious": "Religious sites",
+    "family": "Family fun",
+    "restaurants": "Restaurants",
+    "count": "{{count}} categories"
+  },
+  "map": {
+    "title": "My map",
+    "countriesVisited_one": "{{count}} country visited",
+    "countriesVisited_other": "{{count}} countries visited",
+    "topCities": "Top cities",
+    "placesBeen": "Places you’ve been",
+    "tapCity": "Tap a city to explore",
+    "visitedTapCity": "{{count}} place logged · tap a city",
+    "visitedTapCity_other": "{{count}} places logged · tap a city",
+    "visitedBadge": "Visited",
+    "markVisited": "Mark as visited",
+    "clearVisits": "Clear visits",
+    "noCities": "No cities found for this country.",
+    "offlineCities": "You’re offline. Connect to load top cities for this country.",
+    "citiesError": "Could not load cities for this country.",
+    "openCityOfflineTitle": "You’re offline",
+    "openCityOfflineBody": "Connect to the internet to load attractions for this city.",
+    "openCityErrorTitle": "Could not open city",
+    "openCityErrorBody": "Something went wrong while loading attractions.",
+    "population": "Pop. {{value}}"
+  },
+  "saved": {
+    "title": "Saved",
+    "empty": "No saved routes yet.",
+    "deleteTitle": "Delete saved route?",
+    "deleteBody": "“{{name}}” will be removed.",
+    "delete": "Delete",
+    "openError": "Could not open route"
+  },
+  "chat": {
+    "title": "AI",
+    "placeholder": "Ask for a trip plan…"
+  },
+  "stack": {
+    "attractions": "Attractions",
+    "route": "Your route",
+    "settings": "Settings",
+    "attraction": "Attraction"
+  },
+  "errors": {
+    "enterCity": "Please enter a city name.",
+    "noLocation": "No location found for “{{name}}”. Try another city.",
+    "geocodingFailed": "Geocoding failed ({{status}}).",
+    "searchFailed": "Something went wrong while searching."
+  }
+}

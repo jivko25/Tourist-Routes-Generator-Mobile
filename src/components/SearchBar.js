@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
@@ -12,15 +13,17 @@ export function SearchBar({
   onSearch,
   loading = false,
   disabled = false,
-  placeholder = 'Search city',
+  placeholder,
 }) {
+  const { t } = useTranslation();
   const isDisabled = loading || disabled;
+  const label = placeholder || t('search.placeholder');
 
   return (
     <View style={styles.container}>
       <TextInput
         mode="outlined"
-        label={placeholder}
+        label={label}
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={onSearch}
@@ -45,7 +48,7 @@ export function SearchBar({
         textColor="#FFFFFF"
         labelStyle={styles.buttonLabel}
       >
-        Search
+        {t('search.search')}
       </Button>
     </View>
   );
@@ -59,13 +62,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.86)',
   },
   outline: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
   },
   button: {
     borderRadius: radii.pill,
   },
   buttonContent: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   buttonLabel: {
     fontWeight: '700',

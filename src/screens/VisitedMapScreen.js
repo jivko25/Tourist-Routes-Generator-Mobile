@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { getCountryDetails } from '../api/travelApi';
 import { CountryDetailSheet } from '../components/world/CountryDetailSheet';
 import { WorldMapSvg } from '../components/world/WorldMapSvg';
@@ -53,6 +54,7 @@ function clampPan(panX, panY, scale, fitted, container) {
 }
 
 export function VisitedMapScreen({ navigation }) {
+  const { t } = useTranslation();
   const {
     visitedCountryCodes,
     markCountryVisited,
@@ -126,9 +128,7 @@ export function VisitedMapScreen({ navigation }) {
 
     if (isOffline) {
       setCities([]);
-      setCitiesError(
-        'You’re offline. Connect to load top cities for this country.'
-      );
+      setCitiesError(t('map.offlineCities'));
       setCitiesLoading(false);
       return;
     }
@@ -143,13 +143,11 @@ export function VisitedMapScreen({ navigation }) {
       setCities(list);
     } catch (error) {
       setCities([]);
-      setCitiesError(
-        error?.message || 'Could not load cities for this country.'
-      );
+      setCitiesError(error?.message || t('map.citiesError'));
     } finally {
       setCitiesLoading(false);
     }
-  }, [isOffline]);
+  }, [isOffline, t]);
 
   useEffect(() => {
     if (!selectedCountry?.id) {
@@ -228,8 +226,8 @@ export function VisitedMapScreen({ navigation }) {
 
       if (isOffline) {
         Alert.alert(
-          'You’re offline',
-          'Connect to the internet to load attractions for this city.'
+          t('map.openCityOfflineTitle'),
+          t('map.openCityOfflineBody')
         );
         return;
       }
@@ -250,8 +248,8 @@ export function VisitedMapScreen({ navigation }) {
         });
       } catch (error) {
         Alert.alert(
-          'Could not open city',
-          error?.message || 'Something went wrong while loading attractions.'
+          t('map.openCityErrorTitle'),
+          error?.message || t('map.openCityErrorBody')
         );
       } finally {
         setOpeningCityName(null);
@@ -263,6 +261,7 @@ export function VisitedMapScreen({ navigation }) {
       openingCity,
       openingCityName,
       searchCityAtCoordinates,
+      t,
     ]
   );
 
@@ -345,10 +344,9 @@ export function VisitedMapScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>My map</Text>
+        <Text style={styles.title}>{t('map.title')}</Text>
         <Text style={styles.subtitle}>
-          {visitedCountryCodes.length} countr
-          {visitedCountryCodes.length === 1 ? 'y' : 'ies'} visited
+          {t('map.countriesVisited', { count: visitedCountryCodes.length })}
         </Text>
       </View>
 

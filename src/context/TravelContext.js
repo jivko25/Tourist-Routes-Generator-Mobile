@@ -19,6 +19,7 @@ import {
   normalizeTravelMode,
 } from '../utils/config';
 import { getCountryName } from '../utils/worldCountries';
+import { normalizeLanguage } from '../i18n';
 
 const TravelContext = createContext(null);
 
@@ -340,6 +341,10 @@ export function TravelProvider({ children }) {
 
       if (partial.travelMode != null) {
         next.travelMode = normalizeTravelMode(partial.travelMode);
+      }
+
+      if (partial.language != null) {
+        next.language = normalizeLanguage(partial.language);
       }
 
       return next;

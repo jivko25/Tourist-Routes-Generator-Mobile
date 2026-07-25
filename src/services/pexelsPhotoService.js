@@ -2,6 +2,9 @@
  * Place cover + gallery images via Pexels API (free, multi-photo).
  * Attribution: show "Photos by Pexels" / photographer credit in UI.
  *
+ * Photo search queries are ALWAYS English — Pexels matches EN much better
+ * than localized (e.g. BG) Google Places display names.
+ *
  * GET https://api.pexels.com/v1/search?query=...
  * Header: Authorization: <PEXELS_API_KEY>
  */
@@ -9,18 +12,31 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPexelsApiKey } from '../utils/config';
+import { geocodeCity } from './geocodingService';
+import { fetchPlaceDetails } from './placesService';
 
-const CACHE_KEY = '@travel/pexels_photo_cache_v1';
+const CACHE_KEY = '@travel/pexels_photo_cache_v2';
+const EN_LABEL_CACHE_KEY = '@travel/pexels_en_labels_v1';
 const PEXELS_SEARCH_URL = 'https://api.pexels.com/v1/search';
 /** Photos per place for list + detail gallery */
 export const PEXELS_PHOTOS_PER_PLACE = 5;
 
 const memoryCache = new Map();
+const englishLabelMemory = new Map();
 let diskReady = null;
 let diskCache = {};
+let enLabelDiskReady = null;
+let enLabelDisk = {};
 const inflight = new Map();
+const enLabelInflight = new Map();
+
+function hasNonLatinScript(text) {
+  return /[^\u0000-\u024F\u1E00-\u1EFF]/.test(String(text || ''));
+}
 
 function cacheKey(place, cityName) {
+  const id = place?.googlePlaceId || place?.id;
+  if (id) return `id:${String(id)}`;
   const city = (cityName || '').split(',')[0].trim().toLowerCase();
   const name = (place?.name || '').trim().toLowerCase();
   if (name) return `name:${name}|${city}`;
@@ -52,6 +68,25 @@ async function getDiskCache() {
   return diskReady;
 }
 
+async function getEnLabelDisk() {
+  if (!enLabelDiskReady) {
+    enLabelDiskReady = AsyncStorage.getItem(EN_LABEL_CACHE_KEY)
+      .then((raw) => {
+        try {
+          enLabelDisk = raw ? JSON.parse(raw) || {} : {};
+        } catch {
+          enLabelDisk = {};
+        }
+        return enLabelDisk;
+      })
+      .catch(() => {
+        enLabelDisk = {};
+        return enLabelDisk;
+      });
+  }
+  return enLabelDiskReady;
+}
+
 /**
  * @param {string} key
  * @param {import('../types/attraction').AttractionPhoto[]} photos
@@ -68,12 +103,105 @@ async function savePhotos(key, photos) {
   AsyncStorage.setItem(CACHE_KEY, JSON.stringify(diskCache)).catch(() => {});
 }
 
-function buildSearchQuery(place, cityName) {
-  const name = place?.name?.trim() || '';
-  const cityLabel = cityName?.split(',')?.[0]?.trim() || '';
-  if (name && cityLabel) return `${name} ${cityLabel}`;
+async function saveEnglishLabel(key, label) {
+  if (!key || !label) return;
+  englishLabelMemory.set(key, label);
+  const cache = await getEnLabelDisk();
+  cache[key] = label;
+  enLabelDisk = { ...cache };
+  AsyncStorage.setItem(EN_LABEL_CACHE_KEY, JSON.stringify(enLabelDisk)).catch(
+    () => {}
+  );
+}
+
+/**
+ * Resolve an English place name for Pexels (UI name may be localized).
+ */
+async function resolveEnglishPlaceName(place) {
+  const fallback = place?.name?.trim() || '';
+  const placeId = place?.googlePlaceId || place?.id;
+  if (!placeId) return fallback;
+  if (!hasNonLatinScript(fallback)) return fallback;
+
+  const key = `place:${placeId}`;
+  if (englishLabelMemory.has(key)) return englishLabelMemory.get(key);
+
+  if (enLabelInflight.has(key)) return enLabelInflight.get(key);
+
+  const task = (async () => {
+    try {
+      const disk = await getEnLabelDisk();
+      if (typeof disk[key] === 'string' && disk[key]) {
+        englishLabelMemory.set(key, disk[key]);
+        return disk[key];
+      }
+
+      const details = await fetchPlaceDetails(placeId, { languageCode: 'en' });
+      const englishName = details?.name?.trim() || fallback;
+      await saveEnglishLabel(key, englishName);
+      return englishName;
+    } catch (error) {
+      console.warn(
+        'English place label lookup failed:',
+        placeId,
+        error?.message || error
+      );
+      return fallback;
+    } finally {
+      enLabelInflight.delete(key);
+    }
+  })();
+
+  enLabelInflight.set(key, task);
+  return task;
+}
+
+/**
+ * Resolve an English city label for Pexels.
+ */
+async function resolveEnglishCityName(cityName) {
+  const raw = cityName?.split(',')?.[0]?.trim() || '';
+  if (!raw) return '';
+  if (!hasNonLatinScript(raw)) return raw;
+
+  const key = `city:${raw.toLowerCase()}`;
+  if (englishLabelMemory.has(key)) return englishLabelMemory.get(key);
+  if (enLabelInflight.has(key)) return enLabelInflight.get(key);
+
+  const task = (async () => {
+    try {
+      const disk = await getEnLabelDisk();
+      if (typeof disk[key] === 'string' && disk[key]) {
+        englishLabelMemory.set(key, disk[key]);
+        return disk[key];
+      }
+
+      const city = await geocodeCity(raw, { language: 'en' });
+      const englishCity = city?.name?.split(',')?.[0]?.trim() || raw;
+      await saveEnglishLabel(key, englishCity);
+      return englishCity;
+    } catch (error) {
+      console.warn(
+        'English city label lookup failed:',
+        raw,
+        error?.message || error
+      );
+      return raw;
+    } finally {
+      enLabelInflight.delete(key);
+    }
+  })();
+
+  enLabelInflight.set(key, task);
+  return task;
+}
+
+function buildSearchQuery(placeName, cityLabel) {
+  const name = placeName?.trim() || '';
+  const city = cityLabel?.trim() || '';
+  if (name && city) return `${name} ${city}`;
   if (name) return name;
-  return cityLabel || 'travel landmark';
+  return city || 'travel landmark';
 }
 
 /**
@@ -124,6 +252,7 @@ async function searchPexelsPhotos(query, perPage = PEXELS_PHOTOS_PER_PLACE) {
       query,
       per_page: Math.min(Math.max(perPage, 1), 15),
       orientation: 'landscape',
+      locale: 'en-US',
     },
   });
 
@@ -133,7 +262,7 @@ async function searchPexelsPhotos(query, perPage = PEXELS_PHOTOS_PER_PLACE) {
 /**
  * Resolve multiple Pexels photos for a place (cached).
  *
- * @param {{ name?: string, latitude?: number, longitude?: number, id?: string }} place
+ * @param {{ name?: string, latitude?: number, longitude?: number, id?: string, googlePlaceId?: string }} place
  * @param {string|null} [cityName]
  * @param {{ perPage?: number }} [options]
  * @returns {Promise<import('../types/attraction').AttractionPhoto[]>}
@@ -160,14 +289,18 @@ export async function resolvePlacePhotos(place, cityName = null, options = {}) {
         memoryCache.set(key, cached);
         return cached;
       }
-      // Migrate old single-string cache entries if any
       if (typeof cached === 'string' && cached) {
         const migrated = [{ name: `pexels:cached`, url: cached }];
         memoryCache.set(key, migrated);
         return migrated;
       }
 
-      const query = buildSearchQuery(place, cityName);
+      const [englishName, englishCity] = await Promise.all([
+        resolveEnglishPlaceName(place),
+        resolveEnglishCityName(cityName),
+      ]);
+
+      const query = buildSearchQuery(englishName, englishCity);
       let photos = [];
       try {
         photos = await searchPexelsPhotos(query, perPage);
@@ -175,9 +308,8 @@ export async function resolvePlacePhotos(place, cityName = null, options = {}) {
         console.warn('Pexels search failed:', query, error?.message || error);
       }
 
-      // Fallback: city-only query
-      if (!photos.length && cityName) {
-        const cityOnly = cityName.split(',')[0].trim();
+      if (!photos.length && englishCity) {
+        const cityOnly = englishCity.split(',')[0].trim();
         if (cityOnly && cityOnly !== query) {
           try {
             photos = await searchPexelsPhotos(cityOnly, perPage);

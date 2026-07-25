@@ -1,0 +1,129 @@
+{
+  "common": {
+    "back": "Назад",
+    "save": "Запази настройките",
+    "saved": "Запазено",
+    "dismiss": "Затвори",
+    "retry": "Опитай пак",
+    "cancel": "Отказ",
+    "continue": "Продължи",
+    "clear": "Изчисти",
+    "loading": "Зареждане…",
+    "offline": "Офлайн си"
+  },
+  "tabs": {
+    "explore": "Разгледай",
+    "saved": "Запазени",
+    "ai": "AI",
+    "map": "Карта"
+  },
+  "home": {
+    "brand": "Travel Go",
+    "openSettings": "Отвори настройки",
+    "titleDefault": "Открий места.\nСъздай маршрута си.",
+    "titleActive": "Пътуването ти е в ход.",
+    "subtitleDefault": "Търси град, избери спирки, оптимизирай пътя и го отвори в Google Maps.",
+    "subtitleActive": "Продължи планирането или изчисти маршрута и започни начисто.",
+    "panelStart": "Започни да разглеждаш",
+    "panelAdd": "Добави още места",
+    "placeTypes": "Типове места",
+    "tipSettings": "Съвет: задай начален/краен адрес в Настройки.",
+    "offlineBanner": "Запазените маршрути работят офлайн. Нови търсения на градове изискват интернет.",
+    "offlineSearch": "Офлайн си. Отвори запазен маршрут — новите търсения изискват интернет."
+  },
+  "search": {
+    "placeholder": "Търси град…",
+    "search": "Търси"
+  },
+  "settings": {
+    "title": "Настройки",
+    "intro": "Задай език, адреси за маршрута, радиус на търсене и типове места при търсене в град.",
+    "language": "Език",
+    "languageHint": "Интерфейсът и резултатите от Google Places / Geocoding следват този език.",
+    "english": "English",
+    "bulgarian": "Български",
+    "routePoints": "Точки на маршрута",
+    "startAddress": "Начален адрес",
+    "startPlaceholder": "Манастирски ливади, бул. България 69, 1404 София",
+    "startHelp": "Използва се като начална точка в Google Maps при генериране на маршрут.",
+    "endAddress": "Краен адрес",
+    "endPlaceholder": "Опционален краен адрес",
+    "endHelp": "Използва се като крайна точка в Google Maps. Оставете празно, за да завърши при последната атракция.",
+    "transport": "Начин на придвижване",
+    "transportHint": "Използва се при отваряне на маршрута в Google Maps.",
+    "categories": "Категории места",
+    "categoriesHint": "По подразбиране е само Туризъм. Изберете още типове за по-широки резултати.",
+    "active": "Активни: {{labels}}",
+    "radius": "Радиус на търсене",
+    "radiusCurrent": "Текущ: {{radius}}",
+    "customRadius": "Собствен радиус (км)",
+    "radiusError": "Въведете стойност между {{min}} и {{max}} км.",
+    "radiusInfo": "Местата ще се търсят в радиус {{radius}}."
+  },
+  "travelMode": {
+    "walking": "Пеша",
+    "walkingShort": "Пеша",
+    "driving": "Кола",
+    "drivingShort": "Кола",
+    "bicycling": "Колело",
+    "bicyclingShort": "Колело",
+    "transit": "Градски",
+    "transitShort": "Градски"
+  },
+  "categories": {
+    "tourist": "Туризъм",
+    "museums": "Музеи",
+    "art": "Изкуство и култура",
+    "nature": "Природа и паркове",
+    "landmarks": "Забележителности",
+    "religious": "Религиозни места",
+    "family": "За семейството",
+    "restaurants": "Ресторанти",
+    "count": "{{count}} категории"
+  },
+  "map": {
+    "title": "Моята карта",
+    "countriesVisited_one": "{{count}} посетена държава",
+    "countriesVisited_other": "{{count}} посетени държави",
+    "topCities": "Топ градове",
+    "placesBeen": "Места, на които сте били",
+    "tapCity": "Докоснете град, за да разгледате",
+    "visitedTapCity": "{{count}} място · докоснете град",
+    "visitedTapCity_other": "{{count}} места · докоснете град",
+    "visitedBadge": "Посетен",
+    "markVisited": "Отбележи като посетена",
+    "clearVisits": "Изчисти посещенията",
+    "noCities": "Няма намерени градове за тази държава.",
+    "offlineCities": "Офлайн си. Свържи се, за да заредиш топ градовете.",
+    "citiesError": "Неуспешно зареждане на градовете за тази държава.",
+    "openCityOfflineTitle": "Офлайн си",
+    "openCityOfflineBody": "Свържи се с интернет, за да заредиш забележителностите.",
+    "openCityErrorTitle": "Градът не може да се отвори",
+    "openCityErrorBody": "Нещо се обърка при зареждане на забележителностите.",
+    "population": "Нас. {{value}}"
+  },
+  "saved": {
+    "title": "Запазени",
+    "empty": "Все още няма запазени маршрути.",
+    "deleteTitle": "Изтриване на маршрут?",
+    "deleteBody": "„{{name}}“ ще бъде премахнат.",
+    "delete": "Изтрий",
+    "openError": "Маршрутът не може да се отвори"
+  },
+  "chat": {
+    "title": "AI",
+    "placeholder": "Попитай за план на пътуване…"
+  },
+  "stack": {
+    "attractions": "Забележителности",
+    "route": "Твоят маршрут",
+    "settings": "Настройки",
+    "attraction": "Забележителност"
+  },
+  "errors": {
+    "enterCity": "Моля, въведете име на град.",
+    "noLocation": "Няма намерено място за „{{name}}“. Опитайте друг град.",
+    "geocodingFailed": "Геокодирането не успя ({{status}}).",
+    "searchFailed": "Нещо се обърка при търсенето."
+  }
+}

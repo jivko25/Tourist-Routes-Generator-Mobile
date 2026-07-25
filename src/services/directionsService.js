@@ -4,6 +4,7 @@ import {
   normalizeTravelMode,
   ROUTES_API_BASE_URL,
 } from '../utils/config';
+import { getGoogleLanguageCode } from '../i18n/language';
 
 const MODE_MAP = {
   walking: 'WALK',
@@ -73,7 +74,7 @@ export async function fetchRouteTravelEstimate({
     destination,
     travelMode: apiMode,
     computeAlternativeRoutes: false,
-    languageCode: 'en',
+    languageCode: getGoogleLanguageCode(),
     units: 'METRIC',
   };
 

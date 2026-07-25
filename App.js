@@ -1,9 +1,13 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import './src/i18n';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { I18nextProvider } from 'react-i18next';
 import { Provider as PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TravelProvider } from './src/context/TravelContext';
+import i18n from './src/i18n';
+import { setAppLanguage } from './src/i18n/language';
+import { TravelProvider, useTravel } from './src/context/TravelContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { colors } from './src/theme/colors';
 
@@ -19,15 +23,30 @@ const theme = {
   },
 };
 
+function LanguageSync({ children }) {
+  const { settings, isHydrated } = useTravel();
+
+  useEffect(() => {
+    if (!isHydrated || !settings?.language) return;
+    setAppLanguage(settings.language);
+  }, [isHydrated, settings?.language]);
+
+  return children;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={theme}>
-        <TravelProvider>
-          <StatusBar style="dark" />
-          <AppNavigator />
-        </TravelProvider>
-      </PaperProvider>
+      <I18nextProvider i18n={i18n}>
+        <PaperProvider theme={theme}>
+          <TravelProvider>
+            <LanguageSync>
+              <StatusBar style="dark" />
+              <AppNavigator />
+            </LanguageSync>
+          </TravelProvider>
+        </PaperProvider>
+      </I18nextProvider>
     </SafeAreaProvider>
   );
 }
