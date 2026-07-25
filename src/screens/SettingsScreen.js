@@ -26,6 +26,7 @@ import {
 import { formatRadiusLabel } from '../utils/googleMaps';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
 import { setAppLanguage } from '../i18n/language';
+import { IS_BULGARIAN_ENABLED } from '../i18n';
 import { colors, radii, spacing } from '../theme/colors';
 
 export function SettingsScreen({ navigation }) {
@@ -63,6 +64,7 @@ export function SettingsScreen({ navigation }) {
     radiusMeters > MAX_SEARCH_RADIUS_METERS;
 
   const handleLanguageChange = async (next) => {
+    if (next === 'bg' && !IS_BULGARIAN_ENABLED) return;
     setLanguage(next);
     await setAppLanguage(next);
     updateSettings({ language: next });
@@ -113,7 +115,11 @@ export function SettingsScreen({ navigation }) {
               onValueChange={handleLanguageChange}
               buttons={[
                 { value: 'en', label: t('settings.english') },
-                { value: 'bg', label: t('settings.bulgarian') },
+                {
+                  value: 'bg',
+                  label: t('settings.bulgarian'),
+                  disabled: !IS_BULGARIAN_ENABLED,
+                },
               ]}
               style={styles.presets}
             />
