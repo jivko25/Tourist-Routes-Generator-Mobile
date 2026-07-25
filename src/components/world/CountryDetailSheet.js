@@ -67,8 +67,10 @@ export function CountryDetailSheet({
   citiesError = null,
   onRetryCities,
   onCityPress,
+  onCityPhotosPress,
   openingCityName = null,
   isCityVisited,
+  getCityPhotoCount,
   placeVisits = [],
 }) {
   const { t } = useTranslation();
@@ -162,17 +164,15 @@ export function CountryDetailSheet({
               typeof isCityVisited === 'function'
                 ? isCityVisited(item.name)
                 : false;
+            const photoCount =
+              typeof getCityPhotoCount === 'function'
+                ? getCityPhotoCount(item.name)
+                : 0;
 
             return (
-              <Pressable
+              <View
                 key={String(item.geonameId || `${item.name}-${item.latitude}`)}
-                disabled={Boolean(openingCityName)}
-                onPress={() => onCityPress?.(item)}
-                style={({ pressed }) => [
-                  styles.cityRow,
-                  pressed && styles.pressed,
-                  busy && styles.cityRowBusy,
-                ]}
+                style={[styles.cityRow, busy && styles.cityRowBusy]}
               >
                 <View style={styles.cityText}>
                   <View style={styles.cityNameRow}>
@@ -192,17 +192,58 @@ export function CountryDetailSheet({
                       {t('map.population', { value: pop })}
                     </Text>
                   ) : null}
+                  <View style={styles.cityActions}>
+                    <Pressable
+                      disabled={Boolean(openingCityName)}
+                      onPress={() => onCityPress?.(item)}
+                      style={({ pressed }) => [
+                        styles.cityAction,
+                        styles.cityActionPrimary,
+                        pressed && styles.pressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('map.cityAttractions')}
+                    >
+                      {busy ? (
+                        <ActivityIndicator size="small" color={colors.primaryDark} />
+                      ) : (
+                        <>
+                          <MaterialCommunityIcons
+                            name="map-search-outline"
+                            size={18}
+                            color={colors.primaryDark}
+                          />
+                          <Text style={styles.cityActionPrimaryText}>
+                            {t('map.cityAttractions')}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      disabled={Boolean(openingCityName)}
+                      onPress={() => onCityPhotosPress?.(item)}
+                      style={({ pressed }) => [
+                        styles.cityAction,
+                        styles.cityActionSecondary,
+                        pressed && styles.pressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('map.cityPhotos')}
+                    >
+                      <MaterialCommunityIcons
+                        name="image-multiple-outline"
+                        size={18}
+                        color={colors.accent}
+                      />
+                      <Text style={styles.cityActionSecondaryText}>
+                        {photoCount > 0
+                          ? t('map.cityPhotosCount', { count: photoCount })
+                          : t('map.cityPhotos')}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-                {busy ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={22}
-                    color={colors.textMuted}
-                  />
-                )}
-              </Pressable>
+              </View>
             );
           })}
       </ScrollView>
@@ -240,7 +281,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 460,
+    height: 520,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
@@ -341,9 +382,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
@@ -352,7 +391,6 @@ const styles = StyleSheet.create({
   },
   cityText: {
     flex: 1,
-    paddingRight: spacing.sm,
   },
   cityNameRow: {
     flexDirection: 'row',
@@ -380,6 +418,38 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     color: colors.textMuted,
+  },
+  cityActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  cityAction: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  cityActionPrimary: {
+    backgroundColor: colors.primarySoft,
+  },
+  cityActionSecondary: {
+    backgroundColor: colors.accentSoft,
+  },
+  cityActionPrimaryText: {
+    color: colors.primaryDark,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  cityActionSecondaryText: {
+    color: colors.accent,
+    fontWeight: '800',
+    fontSize: 12,
   },
   empty: {
     fontSize: 13,

@@ -16,6 +16,7 @@ import { GetYourGuideCard } from '../components/GetYourGuideCard';
 import { OpeningHoursSection } from '../components/OpeningHoursSection';
 import { ReviewsList } from '../components/ReviewsList';
 import { PlaceWikipediaSection } from '../components/PlaceWikipediaSection';
+import { FullscreenPhotoModal } from '../components/FullscreenPhotoModal';
 import { useTravel } from '../context/TravelContext';
 import { fetchPlaceDetails } from '../services/placesService';
 import { fetchPlaceWikipediaStory } from '../services/wikipediaService';
@@ -49,6 +50,7 @@ export function AttractionDetailScreen({ route, navigation }) {
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiError, setWikiError] = useState(null);
   const [wikiReloadKey, setWikiReloadKey] = useState(0);
+  const [coverViewerOpen, setCoverViewerOpen] = useState(false);
 
   const baseAttraction = useMemo(() => {
     return (
@@ -254,8 +256,26 @@ export function AttractionDetailScreen({ route, navigation }) {
             loading={imageLoading}
             height={220}
             style={styles.hero}
+            onPress={
+              displayPhotos[0]?.url || imageUrl
+                ? () => setCoverViewerOpen(true)
+                : undefined
+            }
           />
         )}
+
+        <FullscreenPhotoModal
+          visible={coverViewerOpen}
+          photos={
+            displayPhotos.length
+              ? displayPhotos
+              : imageUrl
+                ? [{ url: imageUrl }]
+                : []
+          }
+          initialIndex={0}
+          onClose={() => setCoverViewerOpen(false)}
+        />
 
         <View style={styles.header}>
           <Text variant="headlineSmall" style={styles.title}>

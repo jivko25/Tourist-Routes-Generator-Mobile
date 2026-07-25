@@ -27,26 +27,37 @@
 - [ ] **13. Премахване на полети от чата** — няма ясен flight affiliate; махни transport/flights от parse UI, orchestrator stubs и placeholder copy
 - [ ] **14. Clarifying questions в AI чата (бекенд)** — slot-filling: ако липсват критични данни, питай преди orchestration (не „познавай“)
 - [ ] **15. Разумен throttling на AI / API** — лимити на заявки (per device / IP / ден), за да не се изчерпи безплатният лимит на LLM и свързаните API-та
+- [ ] **16. Аудио гид при пристигане (TTS)** — при arrival (#9) → push → play Wikipedia история (~2–3 мин) с `expo-speech` / подобно; pause / skip / „прочети“; attribution CC BY-SA
+- [ ] **17. Photo albums по държава / град** — важно: държавите и градовете като „папки“; в конкретен град качваш свои снимки (камера/галерия) и стоят организирани; вход от visited map (държава → град → Photos); без задължителен Instagram/PDF recap
+  - [x] Map city row: Attractions + Photos actions
+  - [x] CityPhotos screen + Media Library references (no full sandbox copy)
+  - [ ] Optional: cover thumbnail on city row; Supabase backup later
+  - [x] Attraction detail: tap photo → fullscreen viewer
+- [ ] **18. AR на място** — камера + overlay: име на мястото, кратка история, „следваща точка: ~X мин“; MVP = GPS + компас billboards; по-късно image / VPS recognition за по-стабилно закачане към сградата
 
-## Продуктова връзка (#9 + #11)
+## Продуктова връзка (#9 + #11 + #16 + #17)
 
-Цикъл: **активен маршрут → посещение → спомен на картата**.
+Цикъл: **активен маршрут → пристигане → аудио/история → посещение на картата → албум със снимки в града**.
 
 1. Потребителят стартира маршрут в приложението.
 2. В background се следи локацията (геофенс около **следващата** точка; battery-friendly, не непрекъснат GPS stream).
 3. При пристигане → push: „Пристигна на [място]“.
-4. Отваряне на push → повече информация за текущото място → продължаване към следващата точка по същия начин.
+4. Отваряне на push → детайл + опция за **аудио гид** (#16, Wikipedia TTS) → продължаване към следващата точка.
 5. Локално се записва visit:
    - `kind: 'place'` за забележителността (placeId, placeName, coords, routeId)
    - при нужда и `kind: 'city'` за града
    - държавата се оцветява от всеки visit с този `countryCode`
-6. На visited картата: държава → градове (visited badge) → места в града.
+6. На visited картата: държава → градове → места; към града има **Photos** (#17) — личен албум.
+7. Снимките живеят в папка `countryCode / cityName` (логически); качване ръчно, по желание prompt „Добави снимка към [град]?“ след trip.
 
 Етапи (препоръчително):
 1. Visit schema (готово) + ръчен mark city
 2. Arrival detection → `recordPlaceVisit`
 3. Push + place detail deep link
 4. Map UI: country / city / place drill-down
+5. TTS audio guide (#16) върху cached Wikipedia extract
+6. City photo album MVP (#17): add/view/delete photos per city
+7. AR overlay MVP (#18) след стабилен live trip
 
 ## Бележки
 
@@ -65,6 +76,13 @@
   - **Важни, неблокиращи:** бюджет; интереси (музеи, food…); темпо (relaxed / packed).
   - UX: макс. 2–3 въпроса на ход, групирани („Кога пътувате и колко души сте?“), не анкета.
 - #15: throttle на parse/chat endpoint — напр. N заявки / минута и дневен cap per device id (или anon token) + IP; ясен UX при лимит („Опитай пак по-късно“). По желание: по-кратък prompt / евтин модел за clarification-only стъпки. Цел: да останем в безплатния/евтиния tier колкото се може по-дълго.
+- #16: `expo-speech` (или native TTS) върху `wikipediaStory.extract`; бутон Listen в detail + auto-offer след arrival push. Prefetch extract преди trip. Attribution видима. Без запис/разпространение на аудио като отделен продукт без CC BY-SA.
+- #17: **Photo folders** — `Album { countryCode, cityName, photos: [{ id, assetId, uri, createdAt }] }`. UI от Map sheet: град → **Attractions** / **Photos**. References via `expo-image-picker` + `expo-media-library` (без full-size copy в app sandbox; camera → save to library then link). Long-press в албума = премахни връзката. По-късно: optional Supabase backup.
+- #18 AR:
+  - **UX:** „Look around“ mode по време на trip — камера на живо; върху сградата/посоката: име, 1–2 изречения, CTA Listen / Next (~мин пеша).
+  - **MVP (реалистично в Expo):** GPS + heading (compass) + known place lat/lng → 2D billboard в посоката на точката (не пълно 3D mesh tracking). Работи навън при добра локация; drift в тесни улици.
+  - **По-късно:** ARCore/ARKit geospatial / image anchors — по-стабилно „залепване“ към фасадата; по-тежък native / dev client.
+  - **Рискове:** батерия, privacy (камера), App Store review copy, false positives („грешна“ сграда). Стартирай след #9+#16.
 
 ## История
 
@@ -87,3 +105,6 @@
 | 2026-07-25 | #11 visit schema | kind country/city/place + recordPlaceVisit за #9 |
 | 2026-07-25 | i18n EN/BG | i18next + Settings language; Places/Geocoding languageCode |
 | 2026-07-25 | Wikipedia story | Detail preview + sheet; cached extract for future TTS |
+| 2026-07-25 | #16+#17+#18 | Audio guide TTS; city photo albums; AR on-site (backlog) |
+| 2026-07-25 | #17 pivot | Journal/Instagram recap → албуми държава/град като папки |
+| 2026-07-25 | #17 MVP | City Photos screen + map actions; detail fullscreen photos |

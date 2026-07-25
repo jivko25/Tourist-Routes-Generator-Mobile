@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 import {
   Image,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { FullscreenPhotoModal } from './FullscreenPhotoModal';
 import { colors, radii, spacing } from '../theme/colors';
 
 /**
  * Horizontal photo gallery with page indicators + Pexels attribution.
+ * Tap a photo to open fullscreen.
  */
 export function PhotoGallery({
   photos = [],
@@ -23,6 +26,7 @@ export function PhotoGallery({
   const { width: windowWidth } = useWindowDimensions();
   const width = widthProp || windowWidth - spacing.lg * 2;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   if (!photos.length) {
     return (
@@ -55,12 +59,20 @@ export function PhotoGallery({
         scrollEventThrottle={16}
       >
         {photos.map((photo, index) => (
-          <Image
+          <Pressable
             key={photo.name || String(index)}
-            source={{ uri: photo.url }}
-            style={{ width, height, borderRadius: radii.lg }}
-            resizeMode="cover"
-          />
+            onPress={() => {
+              setActiveIndex(index);
+              setViewerOpen(true);
+            }}
+            accessibilityRole="imagebutton"
+          >
+            <Image
+              source={{ uri: photo.url }}
+              style={{ width, height, borderRadius: radii.lg }}
+              resizeMode="cover"
+            />
+          </Pressable>
         ))}
       </ScrollView>
       {photos.length > 1 ? (
@@ -113,6 +125,13 @@ export function PhotoGallery({
           </Text>
         </Text>
       ) : null}
+
+      <FullscreenPhotoModal
+        visible={viewerOpen}
+        photos={photos}
+        initialIndex={activeIndex}
+        onClose={() => setViewerOpen(false)}
+      />
     </View>
   );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
@@ -20,6 +21,7 @@ export function PlaceCover({
   height = 180,
   style,
   children,
+  onPress,
 }) {
   const preset = getPlaceCoverPreset(place);
   const resolvedUrl =
@@ -36,7 +38,7 @@ export function PlaceCover({
 
   const showPhoto = Boolean(resolvedUrl) && !failed;
 
-  return (
+  const content = (
     <View style={[{ height, borderRadius: radii.lg, overflow: 'hidden' }, style]}>
       {showPhoto ? (
         <Image
@@ -45,7 +47,6 @@ export function PlaceCover({
           style={styles.photo}
           resizeMode="cover"
           onError={() => {
-            // One silent retry helps with flaky CDN redirects.
             if (retryToken < 1) {
               setRetryToken(1);
               return;
@@ -83,6 +84,16 @@ export function PlaceCover({
       </View>
     </View>
   );
+
+  if (typeof onPress === 'function' && showPhoto) {
+    return (
+      <Pressable onPress={onPress} accessibilityRole="imagebutton">
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({

@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   SETTINGS: '@travel/settings',
   SAVED_ROUTES: '@travel/saved_routes',
   VISITS: '@travel/visits',
+  CITY_ALBUMS: '@travel/city_albums_v1',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -124,5 +125,25 @@ export const storageService = {
 
   async saveVisits(visits) {
     await AsyncStorage.setItem(STORAGE_KEYS.VISITS, JSON.stringify(visits));
+  },
+
+  async loadCityAlbums() {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.CITY_ALBUMS);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  },
+
+  async saveCityAlbums(albumsByKey) {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.CITY_ALBUMS,
+      JSON.stringify(albumsByKey || {})
+    );
   },
 };

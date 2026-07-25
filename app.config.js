@@ -21,6 +21,9 @@ module.exports = {
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
+      'CAMERA',
+      'READ_MEDIA_IMAGES',
+      'READ_EXTERNAL_STORAGE',
     ],
     config: {
       googleMaps: {
@@ -34,6 +37,12 @@ module.exports = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Travel Go uses your location to start the route from where you are.',
+      NSCameraUsageDescription:
+        'Travel Go uses the camera so you can add photos to a city album.',
+      NSPhotoLibraryUsageDescription:
+        'Travel Go needs photo access to attach your pictures to city albums without duplicating them.',
+      NSPhotoLibraryAddUsageDescription:
+        'Travel Go can save a camera photo to your library and link it to a city album.',
     },
     config: {
       googleMapsApiKey: process.env.GOOGLE_PLACES_API_KEY,
@@ -46,6 +55,25 @@ module.exports = {
       {
         locationWhenInUsePermission:
           'Allow Travel Go to use your location to start the route from where you are.',
+      },
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'Allow Travel Go to attach your photos to city albums.',
+        cameraPermission:
+          'Allow Travel Go to take photos for city albums.',
+      },
+    ],
+    [
+      'expo-media-library',
+      {
+        photosPermission:
+          'Allow Travel Go to link photos from your library to city albums.',
+        savePhotosPermission:
+          'Allow Travel Go to save camera photos to your library for city albums.',
+        isAccessMediaLocationEnabled: false,
       },
     ],
   ],
