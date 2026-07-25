@@ -9,7 +9,7 @@ import {
 } from '../../utils/worldCountries';
 
 const MapInteractionContext = createContext({
-  visitedIds: [],
+  visitedSet: new Set(),
   selectedId: null,
   onCountryPress: () => {},
 });
@@ -20,11 +20,11 @@ const FILL_SELECTED = colors.accent;
 const STROKE = '#64748B';
 
 function CountryPath({ id, name, d }) {
-  const { visitedIds, selectedId, onCountryPress } = useContext(
+  const { visitedSet, selectedId, onCountryPress } = useContext(
     MapInteractionContext
   );
 
-  const isVisited = visitedIds.includes(id);
+  const isVisited = visitedSet.has(id);
   const isSelected = selectedId === id;
 
   let fill = FILL_DEFAULT;
@@ -43,20 +43,25 @@ function CountryPath({ id, name, d }) {
   );
 }
 
-export function WorldMapSvg({
+function WorldMapSvgComponent({
   width = '100%',
   height = '100%',
   visitedIds = [],
   selectedId = null,
   onCountryPress,
 }) {
+  const visitedSet = useMemo(
+    () => new Set(visitedIds || []),
+    [visitedIds]
+  );
+
   const value = useMemo(
     () => ({
-      visitedIds,
+      visitedSet,
       selectedId,
       onCountryPress,
     }),
-    [visitedIds, selectedId, onCountryPress]
+    [visitedSet, selectedId, onCountryPress]
   );
 
   return (
@@ -79,6 +84,8 @@ export function WorldMapSvg({
     </MapInteractionContext.Provider>
   );
 }
+
+export const WorldMapSvg = React.memo(WorldMapSvgComponent);
 
 export function CountrySilhouette({ d, transform }) {
   if (!d) return null;
