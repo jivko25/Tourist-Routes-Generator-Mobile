@@ -13,6 +13,7 @@ import { haversineDistanceKm } from '../utils/routeOptimization';
 import { getPopularityScore } from '../utils/attractionSort';
 import { mapPriceRange } from '../utils/placePricing';
 import { mapOpeningHoursFromPlace } from '../utils/openingHours';
+import { getGoogleLanguageCode } from '../i18n/language';
 
 const PLACE_TEXT_FIELD_MASK = [
   'places.displayName',
@@ -59,7 +60,7 @@ const PLACE_DETAILS_FIELD_MASK = [
   'regularOpeningHours',
 ].join(',');
 
-const TYPE_TEXT_QUERIES = {
+const TYPE_TEXT_QUERIES_EN = {
   tourist_attraction: 'tourist attractions',
   museum: 'museums',
   art_gallery: 'art galleries',
@@ -78,6 +79,32 @@ const TYPE_TEXT_QUERIES = {
   aquarium: 'aquarium',
   restaurant: 'restaurants',
 };
+
+const TYPE_TEXT_QUERIES_BG = {
+  tourist_attraction: 'туристически атракции',
+  museum: 'музеи',
+  art_gallery: 'художествени галерии',
+  performing_arts_theater: 'театри',
+  cultural_center: 'културни центрове',
+  park: 'паркове',
+  national_park: 'национални паркове',
+  hiking_area: 'места за туризъм',
+  historical_landmark: 'исторически забележителности',
+  church: 'църкви',
+  mosque: 'джамии',
+  synagogue: 'синагоги',
+  hindu_temple: 'индуистки храмове',
+  amusement_park: 'забавни паркове',
+  zoo: 'зоопаркове',
+  aquarium: 'аквариум',
+  restaurant: 'ресторанти',
+};
+
+function getTypeTextQuery(placeType) {
+  const lang = getGoogleLanguageCode();
+  const map = lang === 'bg' ? TYPE_TEXT_QUERIES_BG : TYPE_TEXT_QUERIES_EN;
+  return map[placeType] || placeType.replace(/_/g, ' ');
+}
 
 /** Niche types rarely need many pages; tourist/museum/park get full pagination. */
 const TYPE_MAX_PAGES = {
@@ -202,9 +229,10 @@ function mapPlaceToAttraction(place, placeType = '') {
  * Fetches Place Details (reviews, pricing, website) for a place id.
  *
  * @param {string} placeId
+ * @param {{ languageCode?: string }} [options]
  * @returns {Promise<import('../types/attraction').Attraction>}
  */
-export async function fetchPlaceDetails(placeId) {
+export async function fetchPlaceDetails(placeId, options = {}) {
   if (!placeId) {
     throw new Error('A Google Place ID is required.');
   }
@@ -215,6 +243,9 @@ export async function fetchPlaceDetails(placeId) {
     : `places/${placeId}`;
 
   const response = await axios.get(`${PLACES_API_BASE_URL}/${resourceName}`, {
+    params: {
+      languageCode: options.languageCode || getGoogleLanguageCode(),
+    },
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
@@ -242,6 +273,7 @@ async function searchNearbyByType(center, placeType, options) {
     {
       includedTypes: [placeType],
       maxResultCount: options.maxResultCount,
+      languageCode: getGoogleLanguageCode(),
       locationRestriction: {
         circle: {
           center: {
@@ -277,8 +309,7 @@ async function searchNearbyByType(center, placeType, options) {
  */
 async function searchTextByTypePaginated(center, placeType, options) {
   const rectangle = circleToRectangle(center, options.radius);
-  const textQuery =
-    TYPE_TEXT_QUERIES[placeType] || placeType.replace(/_/g, ' ');
+  const textQuery = getTypeTextQuery(placeType);
   const maxPages =
     options.maxPages ??
     TYPE_MAX_PAGES[placeType] ??
@@ -293,6 +324,7 @@ async function searchTextByTypePaginated(center, placeType, options) {
       textQuery,
       includedType: placeType,
       pageSize: options.maxResultCount,
+      languageCode: getGoogleLanguageCode(),
       locationRestriction: {
         rectangle,
       },

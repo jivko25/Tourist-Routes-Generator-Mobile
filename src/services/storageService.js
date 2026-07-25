@@ -5,6 +5,7 @@ import {
   normalizeTravelMode,
 } from '../utils/config';
 import { DEFAULT_PLACE_CATEGORY_IDS } from '../constants/placeCategories';
+import { normalizeLanguage, detectDeviceLanguage } from '../i18n';
 
 const STORAGE_KEYS = {
   SELECTED_ATTRACTIONS: '@travel/selected_attractions',
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_SETTINGS = {
+  language: detectDeviceLanguage(),
   startAddress: '',
   endAddress: '',
   searchRadiusMeters: DEFAULT_SEARCH_RADIUS_METERS,
@@ -71,6 +73,9 @@ export const storageService = {
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
+        language: normalizeLanguage(
+          parsed.language || DEFAULT_SETTINGS.language
+        ),
         searchRadiusMeters:
           Number(parsed.searchRadiusMeters) || DEFAULT_SEARCH_RADIUS_METERS,
         selectedCategories: normalizeCategories(parsed.selectedCategories),

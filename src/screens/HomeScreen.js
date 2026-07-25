@@ -11,6 +11,7 @@ import {
 import { Banner, IconButton, Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { SearchBar } from '../components/SearchBar';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { GlassCard } from '../components/GlassCard';
@@ -27,6 +28,7 @@ const HERO_IMAGE =
   'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1400&q=80';
 
 export function HomeScreen({ navigation }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const {
     selectedAttractions,
@@ -58,9 +60,7 @@ export function HomeScreen({ navigation }) {
 
   const handleSearch = async () => {
     if (isOffline) {
-      setError(
-        'You’re offline. Open a saved route instead — new city searches need internet.'
-      );
+      setError(t('home.offlineSearch'));
       return;
     }
 
@@ -92,14 +92,14 @@ export function HomeScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.topBar}>
-              <Text style={styles.brand}>Travel Go</Text>
+              <Text style={styles.brand}>{t('home.brand')}</Text>
               <IconButton
                 icon="cog-outline"
                 iconColor={colors.text}
                 size={24}
                 style={styles.cog}
                 onPress={() => navigation.navigate('Settings')}
-                accessibilityLabel="Open settings"
+                accessibilityLabel={t('home.openSettings')}
               />
             </View>
 
@@ -119,13 +119,13 @@ export function HomeScreen({ navigation }) {
               >
                 <Text style={styles.title}>
                   {hasActiveRoute
-                    ? 'Your trip is underway.'
-                    : 'Discover places.\nBuild your route.'}
+                    ? t('home.titleActive')
+                    : t('home.titleDefault')}
                 </Text>
                 <Text style={styles.subtitle}>
                   {hasActiveRoute
-                    ? 'Continue planning, or clear the itinerary and start fresh.'
-                    : 'Search a city, pick stops, optimize the path, and open it in Google Maps.'}
+                    ? t('home.subtitleActive')
+                    : t('home.subtitleDefault')}
                 </Text>
               </Animated.View>
 
@@ -140,12 +140,14 @@ export function HomeScreen({ navigation }) {
               ) : null}
 
               {isOffline ? (
-                <OfflineBanner message="Saved routes still open offline. New city searches need internet." />
+                <OfflineBanner message={t('home.offlineBanner')} />
               ) : null}
 
               <GlassCard style={styles.panel} contentStyle={styles.panelContent}>
                 <Text style={styles.panelTitle}>
-                  {hasActiveRoute ? 'Add more places' : 'Start exploring'}
+                  {hasActiveRoute
+                    ? t('home.panelAdd')
+                    : t('home.panelStart')}
                 </Text>
                 <SearchBar
                   value={query}
@@ -155,7 +157,7 @@ export function HomeScreen({ navigation }) {
                   disabled={isOffline}
                 />
 
-                <Text style={styles.filterLabel}>Place types</Text>
+                <Text style={styles.filterLabel}>{t('home.placeTypes')}</Text>
                 <CategoryFilter
                   selectedIds={settings.selectedCategories || ['tourist']}
                   onChange={(next) =>
@@ -171,7 +173,10 @@ export function HomeScreen({ navigation }) {
                   </View>
                   <View style={styles.metaPill}>
                     <Text style={styles.metaPillText}>
-                      {formatSelectedCategoriesLabel(settings.selectedCategories)}
+                      {formatSelectedCategoriesLabel(
+                        settings.selectedCategories,
+                        t
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -182,7 +187,7 @@ export function HomeScreen({ navigation }) {
                     icon="alert-circle-outline"
                     actions={[
                       {
-                        label: 'Dismiss',
+                        label: t('common.dismiss'),
                         onPress: () => setError(null),
                       },
                     ]}
@@ -194,9 +199,7 @@ export function HomeScreen({ navigation }) {
               </GlassCard>
 
               {!hasActiveRoute ? (
-                <Text style={styles.hint}>
-                  Tip: set start/end addresses in Settings.
-                </Text>
+                <Text style={styles.hint}>{t('home.tipSettings')}</Text>
               ) : null}
             </ScrollView>
           </KeyboardAvoidingView>

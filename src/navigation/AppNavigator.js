@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AttractionsScreen } from '../screens/AttractionsScreen';
 import { AttractionDetailScreen } from '../screens/AttractionDetailScreen';
@@ -18,6 +19,7 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function MainTabs() {
+  const { t } = useTranslation();
   const { savedRoutes } = useTravel();
 
   return (
@@ -49,7 +51,7 @@ function MainTabs() {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          title: 'Explore',
+          title: t('tabs.explore'),
           headerShown: false,
         }}
       />
@@ -57,7 +59,7 @@ function MainTabs() {
         name="SavedTab"
         component={SavedRoutesScreen}
         options={{
-          title: 'Saved',
+          title: t('tabs.saved'),
           headerShown: false,
           tabBarBadge: savedRoutes.length > 0 ? savedRoutes.length : undefined,
         }}
@@ -66,14 +68,14 @@ function MainTabs() {
         name="ChatTab"
         component={ChatScreen}
         options={{
-          title: 'AI',
+          title: t('tabs.ai'),
         }}
       />
       <Tab.Screen
         name="MapTab"
         component={VisitedMapScreen}
         options={{
-          title: 'Map',
+          title: t('tabs.map'),
           headerShown: false,
         }}
       />
@@ -82,8 +84,10 @@ function MainTabs() {
 }
 
 export function AppNavigator() {
+  const { t, i18n } = useTranslation();
+
   return (
-    <NavigationContainer>
+    <NavigationContainer key={i18n.language}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
@@ -107,24 +111,24 @@ export function AppNavigator() {
         <Stack.Screen
           name="Attractions"
           component={AttractionsScreen}
-          options={{ title: 'Attractions' }}
+          options={{ title: t('stack.attractions') }}
         />
         <Stack.Screen
           name="AttractionDetail"
           component={AttractionDetailScreen}
           options={({ route }) => ({
-            title: route.params?.title || 'Attraction',
+            title: route.params?.title || t('stack.attraction'),
           })}
         />
         <Stack.Screen
           name="Route"
           component={RouteScreen}
-          options={{ title: 'Your route' }}
+          options={{ title: t('stack.route') }}
         />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ title: 'Settings' }}
+          options={{ title: t('stack.settings') }}
         />
       </Stack.Navigator>
     </NavigationContainer>

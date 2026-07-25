@@ -14,6 +14,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { useTravel } from '../context/TravelContext';
 import {
@@ -24,9 +25,11 @@ import {
 } from '../utils/config';
 import { formatRadiusLabel } from '../utils/googleMaps';
 import { formatSelectedCategoriesLabel } from '../constants/placeCategories';
+import { setAppLanguage } from '../i18n/language';
 import { colors, radii, spacing } from '../theme/colors';
 
 export function SettingsScreen({ navigation }) {
+  const { t } = useTranslation();
   const { settings, updateSettings, isHydrated } = useTravel();
   const [startAddress, setStartAddress] = useState(settings.startAddress);
   const [endAddress, setEndAddress] = useState(settings.endAddress);
@@ -36,6 +39,7 @@ export function SettingsScreen({ navigation }) {
   const [travelMode, setTravelMode] = useState(
     settings.travelMode || 'walking'
   );
+  const [language, setLanguage] = useState(settings.language || 'en');
   const [radiusInput, setRadiusInput] = useState(
     String(Math.round(settings.searchRadiusMeters / 1000))
   );
@@ -47,6 +51,7 @@ export function SettingsScreen({ navigation }) {
     setEndAddress(settings.endAddress);
     setSelectedCategories(settings.selectedCategories || ['tourist']);
     setTravelMode(settings.travelMode || 'walking');
+    setLanguage(settings.language || 'en');
     setRadiusInput(String(Math.round(settings.searchRadiusMeters / 1000)));
   }, [isHydrated, settings]);
 
@@ -57,10 +62,17 @@ export function SettingsScreen({ navigation }) {
     radiusMeters < MIN_SEARCH_RADIUS_METERS ||
     radiusMeters > MAX_SEARCH_RADIUS_METERS;
 
+  const handleLanguageChange = async (next) => {
+    setLanguage(next);
+    await setAppLanguage(next);
+    updateSettings({ language: next });
+  };
+
   const handleSave = () => {
     if (radiusError) return;
 
     updateSettings({
+      language,
       startAddress: startAddress.trim(),
       endAddress: endAddress.trim(),
       searchRadiusMeters: radiusMeters,
@@ -88,18 +100,33 @@ export function SettingsScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
         >
           <Text variant="bodyLarge" style={styles.intro}>
-            Set route addresses, search radius, and which place types to include
-            when searching a city.
+            {t('settings.intro')}
           </Text>
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Route points
+              {t('settings.language')}
+            </Text>
+            <Text style={styles.helperInline}>{t('settings.languageHint')}</Text>
+            <SegmentedButtons
+              value={language}
+              onValueChange={handleLanguageChange}
+              buttons={[
+                { value: 'en', label: t('settings.english') },
+                { value: 'bg', label: t('settings.bulgarian') },
+              ]}
+              style={styles.presets}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              {t('settings.routePoints')}
             </Text>
             <TextInput
               mode="outlined"
-              label="Start address"
-              placeholder="Manastirski Livadi, Bulgaria Blvd 69, 1404 Sofia"
+              label={t('settings.startAddress')}
+              placeholder={t('settings.startPlaceholder')}
               value={startAddress}
               onChangeText={setStartAddress}
               multiline
@@ -108,14 +135,12 @@ export function SettingsScreen({ navigation }) {
               style={styles.input}
               left={<TextInput.Icon icon="map-marker" />}
             />
-            <HelperText type="info">
-              Used as the Google Maps origin when generating a route.
-            </HelperText>
+            <HelperText type="info">{t('settings.startHelp')}</HelperText>
 
             <TextInput
               mode="outlined"
-              label="End address"
-              placeholder="Optional destination address"
+              label={t('settings.endAddress')}
+              placeholder={t('settings.endPlaceholder')}
               value={endAddress}
               onChangeText={setEndAddress}
               multiline
@@ -124,25 +149,22 @@ export function SettingsScreen({ navigation }) {
               style={styles.input}
               left={<TextInput.Icon icon="flag-checkered" />}
             />
-            <HelperText type="info">
-              Used as the Google Maps destination. Leave empty to end at the
-              last attraction.
-            </HelperText>
+            <HelperText type="info">{t('settings.endHelp')}</HelperText>
           </View>
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Transport mode
+              {t('settings.transport')}
             </Text>
             <Text style={styles.helperInline}>
-              Used when opening the route in Google Maps.
+              {t('settings.transportHint')}
             </Text>
             <SegmentedButtons
               value={travelMode}
               onValueChange={setTravelMode}
               buttons={TRAVEL_MODES.slice(0, 2).map((mode) => ({
                 value: mode.id,
-                label: mode.shortLabel,
+                label: t(`travelMode.${mode.id}Short`),
               }))}
               style={styles.presets}
             />
@@ -151,7 +173,7 @@ export function SettingsScreen({ navigation }) {
               onValueChange={setTravelMode}
               buttons={TRAVEL_MODES.slice(2).map((mode) => ({
                 value: mode.id,
-                label: mode.shortLabel,
+                label: t(`travelMode.${mode.id}Short`),
               }))}
               style={styles.presets}
             />
@@ -159,10 +181,10 @@ export function SettingsScreen({ navigation }) {
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Place categories
+              {t('settings.categories')}
             </Text>
             <Text style={styles.helperInline}>
-              Default is Tourist only. Select more types to broaden results.
+              {t('settings.categoriesHint')}
             </Text>
             <CategoryFilter
               selectedIds={selectedCategories}
@@ -170,16 +192,20 @@ export function SettingsScreen({ navigation }) {
               horizontal={false}
             />
             <HelperText type="info">
-              Active: {formatSelectedCategoriesLabel(selectedCategories)}
+              {t('settings.active', {
+                labels: formatSelectedCategoriesLabel(selectedCategories, t),
+              })}
             </HelperText>
           </View>
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Search radius
+              {t('settings.radius')}
             </Text>
             <Text style={styles.radiusCurrent}>
-              Current: {formatRadiusLabel(settings.searchRadiusMeters)}
+              {t('settings.radiusCurrent', {
+                radius: formatRadiusLabel(settings.searchRadiusMeters),
+              })}
             </Text>
 
             <SegmentedButtons
@@ -212,7 +238,7 @@ export function SettingsScreen({ navigation }) {
 
             <TextInput
               mode="outlined"
-              label="Custom radius (km)"
+              label={t('settings.customRadius')}
               value={radiusInput}
               onChangeText={setRadiusInput}
               keyboardType="decimal-pad"
@@ -222,8 +248,13 @@ export function SettingsScreen({ navigation }) {
             />
             <HelperText type={radiusError ? 'error' : 'info'}>
               {radiusError
-                ? `Enter a value between ${MIN_SEARCH_RADIUS_METERS / 1000} and ${MAX_SEARCH_RADIUS_METERS / 1000} km.`
-                : `Places will be searched within ${formatRadiusLabel(radiusMeters)}.`}
+                ? t('settings.radiusError', {
+                    min: MIN_SEARCH_RADIUS_METERS / 1000,
+                    max: MAX_SEARCH_RADIUS_METERS / 1000,
+                  })
+                : t('settings.radiusInfo', {
+                    radius: formatRadiusLabel(radiusMeters),
+                  })}
             </HelperText>
           </View>
 
@@ -237,11 +268,11 @@ export function SettingsScreen({ navigation }) {
             contentStyle={styles.saveContent}
             labelStyle={{ fontWeight: '700' }}
           >
-            {savedFlash ? 'Saved' : 'Save settings'}
+            {savedFlash ? t('common.saved') : t('common.save')}
           </Button>
 
           <Button mode="text" onPress={() => navigation.goBack()}>
-            Back
+            {t('common.back')}
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

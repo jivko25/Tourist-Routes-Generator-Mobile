@@ -85,3 +85,4 @@
 | 2026-07-25 | #11+#12+#13 | Visited map; Booking.com в чата; премахване на полети |
 | 2026-07-25 | #14+#15 | Clarifying slot-fill в чата; throttling за free-tier лимити |
 | 2026-07-25 | #11 visit schema | kind country/city/place + recordPlaceVisit за #9 |
+| 2026-07-25 | i18n EN/BG | i18next + Settings language; Places/Geocoding languageCode |
