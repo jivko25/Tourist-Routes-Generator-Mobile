@@ -4,7 +4,12 @@ import * as Localization from 'expo-localization';
 import en from './locales/en.json';
 import bg from './locales/bg.json';
 
-export const SUPPORTED_LANGUAGES = ['en', 'bg'];
+/** Flip to true when Bulgarian should be selectable again. */
+export const IS_BULGARIAN_ENABLED = false;
+
+export const SUPPORTED_LANGUAGES = IS_BULGARIAN_ENABLED
+  ? ['en', 'bg']
+  : ['en'];
 export const DEFAULT_LANGUAGE = 'en';
 
 /**
@@ -16,7 +21,7 @@ export function normalizeLanguage(value) {
     .trim()
     .toLowerCase()
     .split(/[-_]/)[0];
-  if (code === 'bg') return 'bg';
+  if (code === 'bg' && IS_BULGARIAN_ENABLED) return 'bg';
   if (code === 'en') return 'en';
   return DEFAULT_LANGUAGE;
 }
@@ -52,7 +57,7 @@ if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
     compatibilityJSON: 'v4',
     resources,
-    lng: detectDeviceLanguage(),
+    lng: DEFAULT_LANGUAGE,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_LANGUAGES,
     interpolation: {
