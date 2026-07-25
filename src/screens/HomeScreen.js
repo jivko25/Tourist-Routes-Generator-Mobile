@@ -98,7 +98,7 @@ export function HomeScreen({ navigation }) {
                 iconColor={colors.text}
                 size={24}
                 style={styles.cog}
-                onPress={() => navigation.navigate('Settings')}
+                onPress={() => navigation.navigate('SettingsTab')}
                 accessibilityLabel={t('home.openSettings')}
               />
             </View>
