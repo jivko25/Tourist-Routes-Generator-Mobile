@@ -194,12 +194,6 @@ export async function resolvePlacePhotos(place, cityName = null, options = {}) {
       memoryCache.set(key, photos);
       if (photos.length) {
         await savePhotos(key, photos);
-        console.log(
-          '[pexels]',
-          name || key,
-          `${photos.length} photos`,
-          photos[0]?.url?.slice(0, 60)
-        );
       }
 
       return photos;
