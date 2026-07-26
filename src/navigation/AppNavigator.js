@@ -12,6 +12,9 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { VisitedMapScreen } from '../screens/VisitedMapScreen';
 import { CityPhotosScreen } from '../screens/CityPhotosScreen';
+import { PhotoExportsScreen } from '../screens/PhotoExportsScreen';
+import { LoginScreen } from '../screens/LoginScreen';
+import { RegisterScreen } from '../screens/RegisterScreen';
 import { CurvedTabBar } from '../components/navigation/CurvedTabBar';
 import { useTravel } from '../context/TravelContext';
 import { colors } from '../theme/colors';
@@ -136,6 +139,21 @@ export function AppNavigator() {
               ? t('stack.cityPhotos', { city: route.params.cityName })
               : t('stack.photos'),
           })}
+        />
+        <Stack.Screen
+          name="PhotoExports"
+          component={PhotoExportsScreen}
+          options={{ title: t('stack.photoExports') }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ title: t('stack.login') }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{ title: t('stack.register') }}
         />
         <Stack.Screen
           name="Route"

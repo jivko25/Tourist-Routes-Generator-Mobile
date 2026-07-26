@@ -1,9 +1,22 @@
 require('dotenv').config();
 
+function googleAndroidReverseScheme() {
+  const id = String(
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || ''
+  ).trim();
+  const hash = id.replace(/\.apps\.googleusercontent\.com$/i, '');
+  if (!hash || hash === id) return null;
+  // Required so Google can redirect back after Drive OAuth.
+  return `com.googleusercontent.apps.${hash}`;
+}
+
+const schemes = ['travelgo', googleAndroidReverseScheme()].filter(Boolean);
+
 module.exports = {
   name: 'Travel Go',
   slug: 'travel-go',
   version: '1.0.0',
+  scheme: schemes.length === 1 ? schemes[0] : schemes,
   orientation: 'portrait',
   icon: './assets/TravelGoIcon.png',
   userInterfaceStyle: 'light',
@@ -50,6 +63,8 @@ module.exports = {
   },
   plugins: [
     'expo-localization',
+    'expo-web-browser',
+    'expo-secure-store',
     [
       'expo-location',
       {
@@ -88,6 +103,10 @@ module.exports = {
       process.env.EXPO_PUBLIC_API_BASE_URL ||
       process.env.TRAVEL_API_BASE_URL ||
       'https://tourist-routes-generator-server.vercel.app',
+    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+    googleAndroidClientId:
+      process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
+    googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
     eas: {
       projectId: '223672ff-5c6c-410e-a7d2-733b07881c13',
     },

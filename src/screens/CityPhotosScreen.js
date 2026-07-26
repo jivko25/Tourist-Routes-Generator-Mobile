@@ -15,6 +15,7 @@ import {
   AlbumPhotoThumb,
   FullscreenPhotoModal,
 } from '../components/FullscreenPhotoModal';
+import { useAuth } from '../context/AuthContext';
 import { useTravel } from '../context/TravelContext';
 import {
   capturePhotoForAlbum,
@@ -22,9 +23,10 @@ import {
   pickPhotosFromLibrary,
   resolveAlbumPhotoUri,
 } from '../services/cityAlbumService';
+import { exportCityAlbumToDriveAndRegister } from '../services/photoExportFlow';
 import { colors, radii, spacing } from '../theme/colors';
 
-export function CityPhotosScreen({ route }) {
+export function CityPhotosScreen({ navigation, route }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const {
@@ -37,8 +39,16 @@ export function CityPhotosScreen({ route }) {
     addPhotosToCityAlbum,
     removePhotoFromCityAlbum,
   } = useTravel();
+  const {
+    isSignedIn,
+    isDriveConfigured,
+    getAccessToken,
+    getGoogleProviderToken,
+  } = useAuth();
 
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState(null);
   const [viewerIndex, setViewerIndex] = useState(null);
   const [resolvedViewerUris, setResolvedViewerUris] = useState([]);
 
@@ -171,6 +181,104 @@ export function CityPhotosScreen({ route }) {
     [countryCode, cityName, removePhotoFromCityAlbum, t]
   );
 
+  const runExport = useCallback(async () => {
+    setExporting(true);
+    setExportStatus(t('exports.phaseZip'));
+    try {
+      const apiAccessToken = await getAccessToken();
+      if (!apiAccessToken) {
+        throw new Error(t('auth.tryAgain'));
+      }
+
+      const googleAccessToken = await getGoogleProviderToken();
+      if (!googleAccessToken) {
+        throw new Error(t('exports.missingDriveToken'));
+      }
+
+      await exportCityAlbumToDriveAndRegister({
+        googleAccessToken,
+        countryCode,
+        countryName,
+        cityName,
+        photos,
+        onProgress: (phase, done, total) => {
+          if (phase === 'zip') {
+            setExportStatus(
+              t('exports.phaseZipProgress', {
+                done: done || 0,
+                total: total || photos.length,
+              })
+            );
+          } else if (phase === 'upload') {
+            setExportStatus(t('exports.phaseUpload'));
+          } else if (phase === 'register') {
+            setExportStatus(t('exports.phaseRegister'));
+          }
+        },
+      });
+
+      Alert.alert(t('exports.successTitle'), t('exports.successBody'), [
+        { text: t('common.continue'), style: 'cancel' },
+        {
+          text: t('exports.viewExports'),
+          onPress: () => navigation.navigate('PhotoExports'),
+        },
+      ]);
+    } catch (err) {
+      Alert.alert(
+        t('exports.failedTitle'),
+        err?.message || t('auth.tryAgain')
+      );
+    } finally {
+      setExporting(false);
+      setExportStatus(null);
+    }
+  }, [
+    cityName,
+    countryCode,
+    countryName,
+    getAccessToken,
+    getGoogleProviderToken,
+    navigation,
+    photos,
+    t,
+  ]);
+
+  const handleExport = useCallback(() => {
+    if (!photos.length) return;
+
+    if (!isSignedIn) {
+      Alert.alert(t('exports.signInTitle'), t('exports.signInBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('auth.signIn'),
+          onPress: () => navigation.navigate('Login'),
+        },
+      ]);
+      return;
+    }
+
+    if (!isDriveConfigured) {
+      Alert.alert(
+        t('auth.driveNotConfiguredTitle'),
+        t('auth.driveNotConfigured')
+      );
+      return;
+    }
+
+    Alert.alert(t('exports.confirmTitle'), t('exports.confirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('exports.exportToDrive'), onPress: runExport },
+    ]);
+  }, [
+    isDriveConfigured,
+    isSignedIn,
+    navigation,
+    photos.length,
+    runExport,
+    t,
+  ]);
+
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <View style={styles.header}>
@@ -212,18 +320,33 @@ export function CityPhotosScreen({ route }) {
       )}
 
       <View style={styles.footer}>
+        {exportStatus ? (
+          <Text style={styles.exportStatus}>{exportStatus}</Text>
+        ) : null}
         <Button
           mode="contained"
           icon="image-plus"
           onPress={handleAdd}
           loading={busy}
-          disabled={busy}
+          disabled={busy || exporting}
           buttonColor={colors.accent}
           textColor="#FFFFFF"
           style={styles.addBtn}
           contentStyle={styles.addBtnContent}
         >
           {t('album.addPhotos')}
+        </Button>
+        <Button
+          mode="outlined"
+          icon="google-drive"
+          onPress={handleExport}
+          loading={exporting}
+          disabled={busy || exporting || photos.length === 0}
+          textColor={colors.primary}
+          style={styles.exportBtn}
+          contentStyle={styles.addBtnContent}
+        >
+          {t('exports.exportToDrive')}
         </Button>
       </View>
 
@@ -234,7 +357,7 @@ export function CityPhotosScreen({ route }) {
         onClose={() => setViewerIndex(null)}
       />
 
-      {busy && photos.length > 0 ? (
+      {(busy || exporting) && photos.length > 0 ? (
         <View style={styles.busyOverlay} pointerEvents="none">
           <ActivityIndicator color={colors.primary} />
         </View>
@@ -295,9 +418,19 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
+    gap: spacing.sm,
+  },
+  exportStatus: {
+    color: colors.textMuted,
+    textAlign: 'center',
+    fontSize: 13,
   },
   addBtn: {
     borderRadius: radii.pill,
+  },
+  exportBtn: {
+    borderRadius: radii.pill,
+    borderColor: colors.primary,
   },
   addBtnContent: {
     paddingVertical: 4,
