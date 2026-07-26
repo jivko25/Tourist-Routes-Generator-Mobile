@@ -34,6 +34,13 @@
   - [ ] Optional: cover thumbnail on city row; Supabase backup later
   - [x] Attraction detail: tap photo → fullscreen viewer
 - [ ] **18. AR на място** — камера + overlay: име на мястото, кратка история, „следваща точка: ~X мин“; MVP = GPS + компас billboards; по-късно image / VPS recognition за по-стабилно закачане към сградата
+- [ ] **19. Export ZIP → Google Drive + Supabase links** — ZIP по град (и по желание по държава с градове вътре); upload в **Drive на потребителя**; запис на download/web линка в Supabase (Auth + DB); уеб: login със същия профил → списък с експортите. Тежките файлове не се държат в Supabase Storage.
+  - [x] Mobile: email/password auth + Drive OAuth only for export
+  - [x] Mobile: city ZIP → Drive upload → `POST /api/photo-exports`
+  - [x] Mobile: exports list + delete metadata (ZIP stays in Drive)
+  - [x] Backend: `POST /api/auth/register` + `/login` + `/refresh` + `/logout`
+  - [ ] Optional: country-scope ZIP
+  - [ ] Web: same login → list export links
 
 ## Продуктова връзка (#9 + #11 + #16 + #17)
 
@@ -83,6 +90,7 @@
   - **MVP (реалистично в Expo):** GPS + heading (compass) + known place lat/lng → 2D billboard в посоката на точката (не пълно 3D mesh tracking). Работи навън при добра локация; drift в тесни улици.
   - **По-късно:** ARCore/ARKit geospatial / image anchors — по-стабилно „залепване“ към фасадата; по-тежък native / dev client.
   - **Рискове:** батерия, privacy (камера), App Store review copy, false positives („грешна“ сграда). Стартирай след #9+#16.
+- #19: Supabase живее **само на бекенда**. Mobile: email/password → `/api/auth/login|register`; Drive OAuth само при export (`drive.file`); после ZIP → Drive → `POST /api/photo-exports`. Без `@supabase/supabase-js` в приложението.
 
 ## История
 
@@ -108,3 +116,4 @@
 | 2026-07-25 | #16+#17+#18 | Audio guide TTS; city photo albums; AR on-site (backlog) |
 | 2026-07-25 | #17 pivot | Journal/Instagram recap → албуми държава/град като папки |
 | 2026-07-25 | #17 MVP | City Photos screen + map actions; detail fullscreen photos |
+| 2026-07-26 | #19 | Export ZIP → user Google Drive; Supabase auth + link registry |

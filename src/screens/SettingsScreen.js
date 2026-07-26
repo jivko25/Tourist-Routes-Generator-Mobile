@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { CategoryFilter } from '../components/CategoryFilter';
+import { useAuth } from '../context/AuthContext';
 import { useTravel } from '../context/TravelContext';
 import {
   MAX_SEARCH_RADIUS_METERS,
@@ -32,6 +34,15 @@ import { colors, radii, spacing } from '../theme/colors';
 export function SettingsScreen({ navigation }) {
   const { t } = useTranslation();
   const { settings, updateSettings, isHydrated } = useTravel();
+  const {
+    isSignedIn,
+    user,
+    signOut,
+    isDriveConfigured,
+    hasDriveAccess,
+    connectGoogleDrive,
+  } = useAuth();
+  const [authBusy, setAuthBusy] = useState(false);
   const [startAddress, setStartAddress] = useState(settings.startAddress);
   const [endAddress, setEndAddress] = useState(settings.endAddress);
   const [selectedCategories, setSelectedCategories] = useState(
@@ -85,6 +96,29 @@ export function SettingsScreen({ navigation }) {
     setTimeout(() => setSavedFlash(false), 1600);
   };
 
+  const handleSignOut = async () => {
+    setAuthBusy(true);
+    try {
+      await signOut();
+    } catch (err) {
+      Alert.alert(t('auth.signOutFailed'), err?.message || t('auth.tryAgain'));
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleConnectDrive = async () => {
+    setAuthBusy(true);
+    try {
+      await connectGoogleDrive();
+      Alert.alert(t('auth.driveConnectedTitle'), t('auth.driveConnectedBody'));
+    } catch (err) {
+      Alert.alert(t('auth.driveFailed'), err?.message || t('auth.tryAgain'));
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
   const presetValue = RADIUS_PRESETS.some(
     (preset) => preset.value === settings.searchRadiusMeters
   )
@@ -104,6 +138,78 @@ export function SettingsScreen({ navigation }) {
           <Text variant="bodyLarge" style={styles.intro}>
             {t('settings.intro')}
           </Text>
+
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              {t('settings.account')}
+            </Text>
+            <Text style={styles.helperInline}>{t('settings.accountHint')}</Text>
+            {isSignedIn ? (
+              <>
+                <Text style={styles.accountEmail} numberOfLines={1}>
+                  {user?.email || t('auth.signedIn')}
+                </Text>
+                <Button
+                  mode="outlined"
+                  icon="folder-zip"
+                  onPress={() => navigation.navigate('PhotoExports')}
+                  style={styles.accountBtn}
+                  textColor={colors.primary}
+                >
+                  {t('exports.myExports')}
+                </Button>
+                {isDriveConfigured ? (
+                  <Button
+                    mode="outlined"
+                    icon="google-drive"
+                    loading={authBusy}
+                    disabled={authBusy}
+                    onPress={handleConnectDrive}
+                    style={styles.accountBtn}
+                    textColor={colors.primary}
+                  >
+                    {hasDriveAccess
+                      ? t('auth.reconnectDrive')
+                      : t('auth.connectDrive')}
+                  </Button>
+                ) : (
+                  <Text style={styles.helperInline}>
+                    {t('auth.driveNotConfigured')}
+                  </Text>
+                )}
+                <Button
+                  mode="text"
+                  loading={authBusy}
+                  disabled={authBusy}
+                  onPress={handleSignOut}
+                  textColor={colors.error}
+                >
+                  {t('auth.signOut')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  mode="contained"
+                  icon="login"
+                  onPress={() => navigation.navigate('Login')}
+                  buttonColor={colors.primary}
+                  textColor="#FFFFFF"
+                  style={styles.accountBtn}
+                >
+                  {t('auth.signIn')}
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('Register')}
+                  style={styles.accountBtn}
+                  textColor={colors.primary}
+                >
+                  {t('auth.createAccount')}
+                </Button>
+              </>
+            )}
+          </View>
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -277,9 +383,6 @@ export function SettingsScreen({ navigation }) {
             {savedFlash ? t('common.saved') : t('common.save')}
           </Button>
 
-          <Button mode="text" onPress={() => navigation.goBack()}>
-            {t('common.back')}
-          </Button>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -319,6 +422,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing.sm,
     lineHeight: 20,
+  },
+  accountEmail: {
+    color: colors.text,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  accountBtn: {
+    borderRadius: radii.pill,
+    marginBottom: spacing.xs,
   },
   input: {
     backgroundColor: colors.surface,
