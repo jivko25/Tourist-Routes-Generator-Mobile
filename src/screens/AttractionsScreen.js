@@ -14,6 +14,7 @@ import {
   Text,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { AttractionCard } from '../components/AttractionCard';
 import { AttractionMapPreview } from '../components/AttractionMapPreview';
 import { AttractionsMapView } from '../components/AttractionsMapView';
@@ -37,6 +38,7 @@ export function AttractionsScreen({ navigation }) {
     searchedCity,
     cityCoordinates,
     selectedAttractions,
+    placesCatalogReady,
     settings,
     updateSettings,
     toggleAttraction,
@@ -66,9 +68,13 @@ export function AttractionsScreen({ navigation }) {
     return sortAttractions(filtered, sortId, cityCoordinates);
   }, [attractions, listQuery, sortId, cityCoordinates]);
 
-  const onRefresh = useCallback(async () => {
+  const reloadCatalog = useCallback(async () => {
+    if (!cityCoordinates) {
+      setError('No city selected to refresh.');
+      return;
+    }
     if (isOffline) {
-      setError('You’re offline. Pull-to-refresh needs internet.');
+      setError('You’re offline. Reloading places needs internet.');
       return;
     }
 
@@ -80,7 +86,44 @@ export function AttractionsScreen({ navigation }) {
     } finally {
       setRefreshing(false);
     }
-  }, [cityCoordinates, searchedCity, refreshAttractions, isOffline, setError]);
+  }, [
+    cityCoordinates,
+    searchedCity,
+    refreshAttractions,
+    isOffline,
+    setError,
+  ]);
+
+  // After app resume the selected stops are restored but the Places catalog is not.
+  useFocusEffect(
+    useCallback(() => {
+      if (placesCatalogReady || !cityCoordinates || isOffline) {
+        return undefined;
+      }
+
+      let cancelled = false;
+      (async () => {
+        setRefreshing(true);
+        try {
+          await refreshAttractions(cityCoordinates, searchedCity);
+        } catch {
+          // Error handled in hook.
+        } finally {
+          if (!cancelled) setRefreshing(false);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [
+      placesCatalogReady,
+      cityCoordinates,
+      searchedCity,
+      isOffline,
+      refreshAttractions,
+    ])
+  );
 
   const handleCategoriesChange = useCallback(
     async (nextCategories) => {
@@ -124,8 +167,11 @@ export function AttractionsScreen({ navigation }) {
     [navigation]
   );
 
+  const isCatalogLoading =
+    !placesCatalogReady && Boolean(cityCoordinates) && (loading || refreshing);
+
   const renderEmpty = () => {
-    if (loading && !refreshing) {
+    if (isCatalogLoading || (loading && !refreshing && !placesCatalogReady)) {
       return (
         <View style={styles.centered}>
           <ActivityIndicator animating color={colors.primary} size="large" />
@@ -153,8 +199,22 @@ export function AttractionsScreen({ navigation }) {
           No places found
         </Text>
         <Text style={styles.emptyText}>
-          Try other categories, a larger radius, or another city.
+          {cityCoordinates
+            ? 'Reload places for this city, or search again from Home.'
+            : 'Try other categories, a larger radius, or another city.'}
         </Text>
+        {cityCoordinates ? (
+          <Button
+            mode="contained"
+            buttonColor={colors.primary}
+            textColor="#FFFFFF"
+            loading={refreshing || loading}
+            disabled={isOffline || refreshing || loading}
+            onPress={reloadCatalog}
+          >
+            Reload places
+          </Button>
+        ) : null}
         <Button
           mode="outlined"
           onPress={() =>
@@ -247,8 +307,8 @@ export function AttractionsScreen({ navigation }) {
           ]}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing || (loading && !refreshing)}
-              onRefresh={onRefresh}
+              refreshing={refreshing || (loading && !placesCatalogReady)}
+              onRefresh={reloadCatalog}
               tintColor={colors.primary}
               colors={[colors.primary]}
             />
