@@ -126,7 +126,7 @@ export function SettingsScreen({ navigation }) {
     : 'custom';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']} testID="screen-settings">
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -139,17 +139,18 @@ export function SettingsScreen({ navigation }) {
             {t('settings.intro')}
           </Text>
 
-          <View style={styles.section}>
+          <View style={styles.section} testID="settings-account-section">
             <Text variant="titleMedium" style={styles.sectionTitle}>
               {t('settings.account')}
             </Text>
             <Text style={styles.helperInline}>{t('settings.accountHint')}</Text>
             {isSignedIn ? (
               <>
-                <Text style={styles.accountEmail} numberOfLines={1}>
+                <Text style={styles.accountEmail} numberOfLines={1} testID="settings-user-email">
                   {user?.email || t('auth.signedIn')}
                 </Text>
                 <Button
+                  testID="settings-my-exports"
                   mode="outlined"
                   icon="folder-zip"
                   onPress={() => navigation.navigate('PhotoExports')}
@@ -178,6 +179,7 @@ export function SettingsScreen({ navigation }) {
                   </Text>
                 )}
                 <Button
+                  testID="settings-sign-out"
                   mode="text"
                   loading={authBusy}
                   disabled={authBusy}
@@ -190,6 +192,7 @@ export function SettingsScreen({ navigation }) {
             ) : (
               <>
                 <Button
+                  testID="settings-sign-in"
                   mode="contained"
                   icon="login"
                   onPress={() => navigation.navigate('Login')}
@@ -200,6 +203,7 @@ export function SettingsScreen({ navigation }) {
                   {t('auth.signIn')}
                 </Button>
                 <Button
+                  testID="settings-create-account"
                   mode="outlined"
                   onPress={() => navigation.navigate('Register')}
                   style={styles.accountBtn}

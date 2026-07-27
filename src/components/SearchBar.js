@@ -20,8 +20,9 @@ export function SearchBar({
   const label = placeholder || t('search.placeholder');
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="search-bar">
       <TextInput
+        testID="search-input"
         mode="outlined"
         label={label}
         value={value}
@@ -38,6 +39,7 @@ export function SearchBar({
         left={<TextInput.Icon icon="magnify" color={colors.primary} />}
       />
       <Button
+        testID="search-submit"
         mode="contained"
         onPress={onSearch}
         loading={loading}

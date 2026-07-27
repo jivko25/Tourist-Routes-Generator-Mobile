@@ -18,6 +18,15 @@
         "credentialsSource": "local"
       }
     },
+    "e2e-test": {
+      "withoutCredentials": true,
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {

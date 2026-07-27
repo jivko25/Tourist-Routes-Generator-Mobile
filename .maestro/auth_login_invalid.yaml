@@ -1,0 +1,39 @@
+appId: com.travelgo.app
+name: Auth — login validation (invalid credentials)
+tags:
+  - auth
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'screen-home'
+    timeout: 20000
+
+- runFlow: subflows/ensure_signed_out.yaml
+
+- tapOn:
+    id: 'settings-sign-in'
+- extendedWaitUntil:
+    visible:
+      id: 'login-email'
+    timeout: 10000
+
+- tapOn:
+    id: 'login-email'
+- eraseText
+- inputText: 'e2e.not.exists@example.com'
+- tapOn:
+    id: 'login-password'
+- eraseText
+- inputText: 'wrongpass'
+- hideKeyboard
+- tapOn:
+    id: 'login-submit'
+
+# Backend should reject; stay on login screen
+- extendedWaitUntil:
+    visible:
+      id: 'screen-login'
+    timeout: 15000
+- assertVisible:
+    id: 'login-title'

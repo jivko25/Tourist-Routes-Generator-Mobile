@@ -1,0 +1,41 @@
+appId: com.travelgo.app
+name: Settings — open login form
+tags:
+  - settings
+  - auth
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'screen-home'
+    timeout: 20000
+
+- runFlow: subflows/ensure_signed_out.yaml
+
+- tapOn:
+    id: 'settings-sign-in'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-login'
+    timeout: 10000
+- assertVisible:
+    id: 'login-title'
+- assertVisible:
+    id: 'login-email'
+- assertVisible:
+    id: 'login-password'
+- assertVisible:
+    id: 'login-submit'
+
+- tapOn:
+    id: 'login-go-register'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-register'
+    timeout: 10000
+- assertVisible:
+    id: 'register-title'
+- assertVisible:
+    id: 'register-email'
+- assertVisible:
+    id: 'register-submit'

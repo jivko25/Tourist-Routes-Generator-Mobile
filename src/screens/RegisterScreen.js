@@ -50,7 +50,7 @@ export function RegisterScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']} testID="screen-register">
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -59,12 +59,13 @@ export function RegisterScreen({ navigation }) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title} testID="register-title">
             {t('auth.registerTitle')}
           </Text>
           <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>
 
           <TextInput
+            testID="register-fullname"
             mode="outlined"
             label={t('auth.fullName')}
             value={fullName}
@@ -77,6 +78,7 @@ export function RegisterScreen({ navigation }) {
           />
 
           <TextInput
+            testID="register-email"
             mode="outlined"
             label={t('auth.email')}
             value={email}
@@ -140,6 +142,7 @@ export function RegisterScreen({ navigation }) {
           ) : null}
 
           <Button
+            testID="register-submit"
             mode="contained"
             onPress={handleSubmit}
             loading={busy}

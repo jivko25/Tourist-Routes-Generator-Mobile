@@ -48,10 +48,16 @@ export function isDriveOAuthConfigured() {
 function toApiError(error) {
   const status = error?.response?.status;
   const body = error?.response?.data;
-  const message =
+  let message =
     (typeof body?.message === 'string' && body.message) ||
     error?.message ||
     'Auth request failed.';
+
+  // Axios uses "Network Error" when there is no HTTP response (offline, DNS, TLS, bad URL).
+  if (!error?.response && /network error/i.test(String(message))) {
+    message = `Cannot reach API (${getTravelApiBaseUrl()}). Check device internet and EXPO_PUBLIC_API_BASE_URL.`;
+  }
+
   const err = new Error(message);
   err.statusCode = body?.statusCode || status || 0;
   err.isAuthApiError = true;

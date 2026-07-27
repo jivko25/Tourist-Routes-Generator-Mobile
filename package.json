@@ -49,7 +49,17 @@
     "web": "expo start --web",
     "build:android": "eas build -p android --profile preview",
     "build:ios": "eas build -p ios --profile preview",
-    "build:prod:android": "eas build -p android --profile production"
+    "build:prod:android": "eas build -p android --profile production",
+    "build:e2e:android": "eas build -p android --profile e2e-test",
+    "test:e2e": "node ./scripts/e2e.js",
+    "test:e2e:smoke": "node ./scripts/e2e.js smoke",
+    "test:e2e:home": "node ./scripts/e2e.js home",
+    "test:e2e:forms": "node ./scripts/e2e.js forms",
+    "test:e2e:invalid": "node ./scripts/e2e.js invalid",
+    "test:e2e:login": "node ./scripts/e2e.js login",
+    "test:e2e:list": "node ./scripts/e2e.js list",
+    "test:e2e:studio": "node ./scripts/run-maestro.js studio",
+    "test:e2e:cloud": "eas workflow:run .eas/workflows/e2e-test-android.yml"
   },
   "private": true
 }

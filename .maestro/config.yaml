@@ -1,0 +1,7 @@
+appId: com.travelgo.app
+# Suite discovery for `maestro test .maestro/` / `npm run test:e2e`
+flows:
+  - '*'
+excludeTags:
+  - optional
+  - subflow
