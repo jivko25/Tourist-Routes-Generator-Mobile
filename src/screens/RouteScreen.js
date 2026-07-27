@@ -527,7 +527,11 @@ export function RouteScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['left', 'right']}
+      testID="screen-route"
+    >
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -547,6 +551,7 @@ export function RouteScreen({ navigation }) {
 
         <Button
           mode="outlined"
+          testID="route-add-more"
           onPress={handleAddMorePlaces}
           icon="plus-circle-outline"
           textColor={colors.primary}
@@ -619,6 +624,7 @@ export function RouteScreen({ navigation }) {
           <View style={styles.gpsRow}>
             <Button
               mode={gpsStartPoint ? 'contained' : 'outlined'}
+              testID="route-gps-start"
               compact
               icon="crosshairs-gps"
               loading={gpsLoadingTarget === 'start'}
@@ -649,6 +655,7 @@ export function RouteScreen({ navigation }) {
           <View style={styles.gpsRow}>
             <Button
               mode={gpsEndPoint ? 'contained' : 'outlined'}
+              testID="route-gps-end"
               compact
               icon="crosshairs-gps"
               loading={gpsLoadingTarget === 'end'}
@@ -719,6 +726,7 @@ export function RouteScreen({ navigation }) {
               <View style={styles.listToolbar}>
                 <Button
                   mode="outlined"
+                  testID="route-reverse"
                   compact
                   icon="swap-vertical"
                   onPress={handleReverseRoute}
@@ -774,6 +782,7 @@ export function RouteScreen({ navigation }) {
             </Text>
             <TextInput
               mode="outlined"
+              testID="route-save-name"
               label="Route name"
               value={routeName}
               onChangeText={setRouteName}
@@ -783,8 +792,9 @@ export function RouteScreen({ navigation }) {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setSaveDialogVisible(false)}>Cancel</Button>
+            <Button testID="route-save-cancel" onPress={() => setSaveDialogVisible(false)}>Cancel</Button>
             <Button
+              testID="route-save-confirm"
               loading={saving}
               disabled={!routeName.trim() || saving}
               onPress={handleSaveRoute}

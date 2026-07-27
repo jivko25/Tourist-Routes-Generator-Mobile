@@ -126,7 +126,11 @@ export function PhotoExportsScreen({ navigation }) {
 
   if (!isReady) {
     return (
-      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView
+        style={styles.safe}
+        edges={['left', 'right', 'bottom']}
+        testID="screen-photo-exports"
+      >
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
         </View>
@@ -136,7 +140,11 @@ export function PhotoExportsScreen({ navigation }) {
 
   if (!isSignedIn) {
     return (
-      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView
+        style={styles.safe}
+        edges={['left', 'right', 'bottom']}
+        testID="screen-photo-exports"
+      >
         <View style={styles.centeredPad}>
           <Text style={styles.emptyTitle}>{t('exports.signInTitle')}</Text>
           <Text style={styles.emptyBody}>{t('exports.signInBody')}</Text>
@@ -163,7 +171,11 @@ export function PhotoExportsScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['left', 'right', 'bottom']}
+      testID="screen-photo-exports"
+    >
       {loading && !refreshing ? (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
@@ -214,7 +226,7 @@ export function PhotoExportsScreen({ navigation }) {
             ].filter(Boolean);
 
             return (
-              <View style={styles.row}>
+              <View style={styles.row} testID={`photo-export-${item.id}`}>
                 <View style={styles.rowBody}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
                     {title}
@@ -227,12 +239,14 @@ export function PhotoExportsScreen({ navigation }) {
                   </Text>
                 </View>
                 <IconButton
+                  testID={`photo-export-open-${item.id}`}
                   icon="open-in-new"
                   iconColor={colors.primary}
                   onPress={() => openDrive(item)}
                   accessibilityLabel={t('exports.openDrive')}
                 />
                 <IconButton
+                  testID={`photo-export-delete-${item.id}`}
                   icon="delete-outline"
                   iconColor={colors.error}
                   disabled={busyId === item.id}

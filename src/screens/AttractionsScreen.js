@@ -206,6 +206,7 @@ export function AttractionsScreen({ navigation }) {
         {cityCoordinates ? (
           <Button
             mode="contained"
+            testID="attractions-reload"
             buttonColor={colors.primary}
             textColor="#FFFFFF"
             loading={refreshing || loading}
@@ -228,7 +229,11 @@ export function AttractionsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['left', 'right', 'bottom']}
+      testID="screen-attractions"
+    >
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.title}>
           {searchedCity || 'Places'}
@@ -265,6 +270,7 @@ export function AttractionsScreen({ navigation }) {
         />
 
         <Searchbar
+          testID="attractions-search"
           placeholder="Search places…"
           value={listQuery}
           onChangeText={(text) => {
@@ -277,6 +283,7 @@ export function AttractionsScreen({ navigation }) {
         />
 
         <Pressable
+          testID="attractions-options"
           style={styles.optionsButton}
           onPress={() => setOptionsOpen(true)}
         >
@@ -360,6 +367,7 @@ export function AttractionsScreen({ navigation }) {
       <View style={styles.footer}>
         <Button
           mode="contained"
+          testID="attractions-footer-route"
           buttonColor={colors.accent}
           textColor="#FFFFFF"
           disabled={selectedAttractions.length === 0}

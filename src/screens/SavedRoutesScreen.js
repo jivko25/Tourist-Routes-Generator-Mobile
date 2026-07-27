@@ -99,7 +99,11 @@ export function SavedRoutesScreen({ navigation }) {
       .join(' · ');
 
     return (
-      <Pressable style={styles.card} onPress={() => handleOpen(item)}>
+      <Pressable
+        style={styles.card}
+        testID={`saved-route-${item.id}`}
+        onPress={() => handleOpen(item)}
+      >
         <SavedRouteCover
           place={coverPlace}
           cityName={item.cityName}
@@ -134,6 +138,7 @@ export function SavedRoutesScreen({ navigation }) {
           <View style={styles.cardActions}>
             <Button
               mode="contained"
+              testID={`saved-route-open-${item.id}`}
               compact
               loading={loadingId === item.id}
               onPress={() => handleOpen(item)}
@@ -146,6 +151,7 @@ export function SavedRoutesScreen({ navigation }) {
             </Button>
             <Button
               mode="outlined"
+              testID={`saved-route-share-${item.id}`}
               compact
               loading={sharingId === item.id}
               disabled={sharingId === item.id}
@@ -159,6 +165,7 @@ export function SavedRoutesScreen({ navigation }) {
             </Button>
             <Button
               mode="text"
+              testID={`saved-route-delete-${item.id}`}
               compact
               onPress={() => handleDelete(item)}
               textColor={colors.error}

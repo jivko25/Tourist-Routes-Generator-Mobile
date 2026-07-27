@@ -41,7 +41,11 @@ export function ActiveRouteCard({
   if (!selectedAttractions.length) return null;
 
   return (
-    <GlassCard style={styles.card} contentStyle={styles.content}>
+    <GlassCard
+      style={styles.card}
+      contentStyle={styles.content}
+      testID="active-route-card"
+    >
       <View style={styles.badge}>
         <View style={styles.badgeDot} />
         <Text style={styles.badgeText}>Route in progress</Text>
@@ -81,6 +85,7 @@ export function ActiveRouteCard({
       <View style={styles.actions}>
         <Button
           mode="contained"
+          testID="active-route-continue"
           onPress={onContinue}
           buttonColor={colors.accent}
           textColor="#FFFFFF"
@@ -93,6 +98,7 @@ export function ActiveRouteCard({
         </Button>
         <Button
           mode="outlined"
+          testID="active-route-clear"
           onPress={handleClear}
           textColor={colors.textMuted}
           style={styles.clearBtn}

@@ -83,6 +83,7 @@ export function AttractionCard({
   return (
     <Animated.View style={[styles.wrap, { transform: [{ scale }] }]}>
       <Pressable
+        testID={`attraction-card-${attraction.id}`}
         onPress={() => onPressDetails?.(attraction)}
         style={[styles.card, selected && styles.cardSelected]}
       >
@@ -151,6 +152,7 @@ export function AttractionCard({
       <View style={styles.actions}>
         <Button
           mode="outlined"
+          testID={`attraction-details-${attraction.id}`}
           onPress={() => onPressDetails?.(attraction)}
           textColor={colors.primary}
           style={styles.secondaryBtn}
@@ -161,6 +163,7 @@ export function AttractionCard({
         </Button>
         <Button
           mode="contained"
+          testID={`attraction-add-${attraction.id}`}
           onPress={handleToggle}
           loading={toggling}
           disabled={toggling}

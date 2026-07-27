@@ -280,7 +280,11 @@ export function CityPhotosScreen({ navigation, route }) {
   ]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['left', 'right', 'bottom']}
+      testID="screen-city-photos"
+    >
       <View style={styles.header}>
         <Text variant="titleMedium" style={styles.title}>
           {cityName}
@@ -325,6 +329,7 @@ export function CityPhotosScreen({ navigation, route }) {
         ) : null}
         <Button
           mode="contained"
+          testID="city-photos-add"
           icon="image-plus"
           onPress={handleAdd}
           loading={busy}
@@ -338,6 +343,7 @@ export function CityPhotosScreen({ navigation, route }) {
         </Button>
         <Button
           mode="outlined"
+          testID="city-photos-export"
           icon="google-drive"
           onPress={handleExport}
           loading={exporting}
