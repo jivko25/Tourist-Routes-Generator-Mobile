@@ -97,6 +97,7 @@ export function RegisterScreen({ navigation }) {
 
           <TextInput
             mode="outlined"
+            testID="register-password"
             label={t('auth.password')}
             value={password}
             onChangeText={setPassword}
@@ -121,6 +122,7 @@ export function RegisterScreen({ navigation }) {
 
           <TextInput
             mode="outlined"
+            testID="register-confirm-password"
             label={t('auth.confirmPassword')}
             value={confirm}
             onChangeText={setConfirm}
@@ -158,6 +160,7 @@ export function RegisterScreen({ navigation }) {
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>{t('auth.hasAccount')}</Text>
             <Button
+              testID="register-go-login"
               mode="text"
               onPress={() => navigation.replace('Login')}
               textColor={colors.primary}

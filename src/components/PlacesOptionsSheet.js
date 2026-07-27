@@ -35,6 +35,7 @@ export function PlacesOptionsSheet({
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View
+          testID="places-options-sheet"
           style={[
             styles.sheet,
             { paddingBottom: Math.max(insets.bottom, spacing.lg) },
@@ -51,6 +52,7 @@ export function PlacesOptionsSheet({
                 return (
                   <Pressable
                     key={option.id}
+                    testID={`places-sort-${option.id}`}
                     onPress={() => onSortChange?.(option.id)}
                     style={[styles.sortRow, selected && styles.sortRowSelected]}
                   >
@@ -88,7 +90,11 @@ export function PlacesOptionsSheet({
             />
           </ScrollView>
 
-          <Pressable style={styles.doneButton} onPress={onClose}>
+          <Pressable
+            testID="places-options-done"
+            style={styles.doneButton}
+            onPress={onClose}
+          >
             <Text style={styles.doneText}>Done</Text>
           </Pressable>
         </View>

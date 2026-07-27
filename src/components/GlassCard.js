@@ -10,6 +10,7 @@ export function GlassCard({
   children,
   style,
   contentStyle,
+  testID,
   intensity = 35,
   tint = 'light',
   dark = false,
@@ -21,6 +22,7 @@ export function GlassCard({
     // Android blur support varies; keep a soft translucent glass look.
     return (
       <View
+        testID={testID}
         style={[
           styles.base,
           { backgroundColor: fallbackBg, borderColor },
@@ -33,7 +35,7 @@ export function GlassCard({
   }
 
   return (
-    <View style={[styles.base, { borderColor }, style]}>
+    <View testID={testID} style={[styles.base, { borderColor }, style]}>
       <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
       <View
         style={[

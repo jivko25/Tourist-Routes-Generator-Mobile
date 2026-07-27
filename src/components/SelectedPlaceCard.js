@@ -47,6 +47,7 @@ export function SelectedPlaceCard({
 
   return (
     <View
+      testID={`selected-place-${attraction.id}`}
       style={[
         styles.container,
         isStart && styles.containerStart,
@@ -88,6 +89,7 @@ export function SelectedPlaceCard({
         </View>
       </View>
       <IconButton
+        testID={`selected-place-remove-${attraction.id}`}
         icon="close"
         iconColor={colors.accent}
         size={18}

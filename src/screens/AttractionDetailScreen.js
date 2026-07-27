@@ -206,7 +206,11 @@ export function AttractionDetailScreen({ route, navigation }) {
 
   if (!attraction) {
     return (
-      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView
+        style={styles.safe}
+        edges={['left', 'right', 'bottom']}
+        testID="screen-attraction-detail"
+      >
         <View style={styles.missing}>
           <Text variant="titleMedium" style={styles.missingTitle}>
             Attraction not found
@@ -241,7 +245,11 @@ export function AttractionDetailScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['left', 'right', 'bottom']}
+      testID="screen-attraction-detail"
+    >
       <ScrollView contentContainerStyle={styles.content}>
         {displayPhotos.length > 1 ? (
           <PhotoGallery
@@ -369,6 +377,7 @@ export function AttractionDetailScreen({ route, navigation }) {
             {attraction.googleMapsUri ? (
               <Button
                 mode="text"
+                testID="detail-open-maps"
                 textColor={colors.primaryDark}
                 onPress={() => Linking.openURL(attraction.googleMapsUri)}
                 style={styles.mapsLink}
@@ -404,6 +413,7 @@ export function AttractionDetailScreen({ route, navigation }) {
       <View style={styles.footer}>
         <Button
           mode="contained"
+          testID={selected ? 'detail-remove-route' : 'detail-add-route'}
           onPress={handleToggle}
           loading={toggling}
           disabled={toggling}

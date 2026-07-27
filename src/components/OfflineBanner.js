@@ -10,7 +10,7 @@ export function OfflineBanner({
   message = 'You’re offline. Saved routes still work — new searches need internet.',
 }) {
   return (
-    <View style={styles.banner}>
+    <View style={styles.banner} testID="offline-banner">
       <Text style={styles.title}>Offline mode</Text>
       <Text style={styles.message}>{message}</Text>
     </View>

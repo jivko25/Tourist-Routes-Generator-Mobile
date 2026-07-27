@@ -413,6 +413,7 @@ export function VisitedMapScreen({ navigation }) {
 
       <View
         style={styles.mapArea}
+        testID="map-canvas"
         onLayout={(event) => {
           const { width, height } = event.nativeEvent.layout;
           setContainer((prev) =>

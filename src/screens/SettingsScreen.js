@@ -221,14 +221,20 @@ export function SettingsScreen({ navigation }) {
             </Text>
             <Text style={styles.helperInline}>{t('settings.languageHint')}</Text>
             <SegmentedButtons
+              testID="settings-language"
               value={language}
               onValueChange={handleLanguageChange}
               buttons={[
-                { value: 'en', label: t('settings.english') },
+                {
+                  value: 'en',
+                  label: t('settings.english'),
+                  testID: 'settings-language-en',
+                },
                 {
                   value: 'bg',
                   label: t('settings.bulgarian'),
                   disabled: !IS_BULGARIAN_ENABLED,
+                  testID: 'settings-language-bg',
                 },
               ]}
               style={styles.presets}
@@ -241,6 +247,7 @@ export function SettingsScreen({ navigation }) {
             </Text>
             <TextInput
               mode="outlined"
+              testID="settings-start-address"
               label={t('settings.startAddress')}
               placeholder={t('settings.startPlaceholder')}
               value={startAddress}
@@ -255,6 +262,7 @@ export function SettingsScreen({ navigation }) {
 
             <TextInput
               mode="outlined"
+              testID="settings-end-address"
               label={t('settings.endAddress')}
               placeholder={t('settings.endPlaceholder')}
               value={endAddress}
@@ -276,20 +284,24 @@ export function SettingsScreen({ navigation }) {
               {t('settings.transportHint')}
             </Text>
             <SegmentedButtons
+              testID="settings-travel-mode"
               value={travelMode}
               onValueChange={setTravelMode}
               buttons={TRAVEL_MODES.slice(0, 2).map((mode) => ({
                 value: mode.id,
                 label: t(`travelMode.${mode.id}Short`),
+                testID: `settings-travel-mode-${mode.id}`,
               }))}
               style={styles.presets}
             />
             <SegmentedButtons
+              testID="settings-travel-mode-more"
               value={travelMode}
               onValueChange={setTravelMode}
               buttons={TRAVEL_MODES.slice(2).map((mode) => ({
                 value: mode.id,
                 label: t(`travelMode.${mode.id}Short`),
+                testID: `settings-travel-mode-${mode.id}`,
               }))}
               style={styles.presets}
             />
@@ -325,6 +337,7 @@ export function SettingsScreen({ navigation }) {
             </Text>
 
             <SegmentedButtons
+              testID="settings-radius-presets"
               value={presetValue}
               onValueChange={(value) => {
                 if (value === 'custom') return;
@@ -335,10 +348,12 @@ export function SettingsScreen({ navigation }) {
               buttons={RADIUS_PRESETS.slice(0, 3).map((preset) => ({
                 value: String(preset.value),
                 label: preset.label,
+                testID: `settings-radius-${preset.value}`,
               }))}
               style={styles.presets}
             />
             <SegmentedButtons
+              testID="settings-radius-presets-more"
               value={presetValue}
               onValueChange={(value) => {
                 const meters = Number(value);
@@ -348,12 +363,14 @@ export function SettingsScreen({ navigation }) {
               buttons={RADIUS_PRESETS.slice(3).map((preset) => ({
                 value: String(preset.value),
                 label: preset.label,
+                testID: `settings-radius-${preset.value}`,
               }))}
               style={styles.presets}
             />
 
             <TextInput
               mode="outlined"
+              testID="settings-radius-custom"
               label={t('settings.customRadius')}
               value={radiusInput}
               onChangeText={setRadiusInput}
@@ -376,6 +393,7 @@ export function SettingsScreen({ navigation }) {
 
           <Button
             mode="contained"
+            testID="settings-save"
             onPress={handleSave}
             disabled={radiusError}
             buttonColor={colors.primary}

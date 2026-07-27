@@ -32,6 +32,7 @@ export function CategoryFilter({
     return (
       <Pressable
         key={category.id}
+        testID={`category-${category.id}`}
         onPress={() => toggleCategory(category.id)}
         style={[styles.chip, selected && styles.chipSelected]}
       >

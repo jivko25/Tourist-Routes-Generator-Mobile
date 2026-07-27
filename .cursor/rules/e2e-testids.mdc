@@ -1,0 +1,44 @@
+---
+description: Always add Maestro testIDs when adding or changing UI
+globs: src/screens/**/*.js,src/components/**/*.js
+alwaysApply: false
+---
+
+# E2E testIDs (Maestro)
+
+Whenever you add or change interactive UI in this app, include stable `testID` props so Maestro flows can be written without a new native rebuild.
+
+## Naming
+
+- Screens: `screen-{name}` — e.g. `screen-home`, `screen-route`
+- Tabs: `tab-{TabName}` — already on `CurvedTabBar`
+- Actions: `{area}-{action}` — e.g. `route-add-more`, `settings-sign-in`
+- Fields: `{area}-{field}` — e.g. `login-email`, `chat-input`
+- List rows: `{entity}-{id}` — e.g. `attraction-card-${id}`, `saved-route-${id}`
+- Nested actions on a row: `{entity}-{action}-${id}` — e.g. `attraction-add-${id}`
+
+Use lowercase kebab-case. Prefer stable IDs over index-based IDs.
+
+## What needs a testID
+
+- Screen root `SafeAreaView` / main container
+- Primary / secondary buttons
+- Text inputs and submit
+- Tabs, sheets, modals, empty-state CTAs
+- Cards users tap; include Add / Details / Delete when present
+- Error helpers that tests assert on (`login-error`)
+
+## What to skip
+
+- Purely decorative views
+- Every tiny `Text` label (title/key CTA is enough)
+- Changing existing IDs unless fixing a bug (breaks flows)
+
+## Checklist before finishing a UI task
+
+1. New screen → `testID="screen-..."` on root
+2. New button / input → `testID`
+3. New list item component → id-suffixed `testID`
+4. If you add a user journey, note it under `docs/E2E_FLOWS.md` as a TODO flow if no YAML exists yet
+
+See `docs/E2E.md` (how to run) and `docs/E2E_FLOWS.md` (flow backlog + ID map).

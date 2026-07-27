@@ -48,8 +48,9 @@ export function RouteActionsDock({
   const busy = opening || sharing || optimizing;
 
   return (
-    <View style={styles.dock}>
+    <View style={styles.dock} testID="route-actions-dock">
       <Pressable
+        testID="route-actions-toggle"
         onPress={toggleExpanded}
         style={styles.handleRow}
         accessibilityRole="button"
@@ -74,6 +75,7 @@ export function RouteActionsDock({
       </Pressable>
 
       <Pressable
+        testID="route-open-maps"
         onPress={onOpenMaps}
         disabled={busy}
         style={[styles.primaryBtn, busy && styles.btnDisabled]}
@@ -96,6 +98,7 @@ export function RouteActionsDock({
         <QuickAction
           icon="share-variant"
           label="Share"
+          testID="route-share"
           onPress={onShare}
           loading={sharing}
           disabled={busy}
@@ -103,6 +106,7 @@ export function RouteActionsDock({
         <QuickAction
           icon="bookmark-plus-outline"
           label="Save"
+          testID="route-save"
           onPress={onSave}
           disabled={busy}
           tone="success"
@@ -110,6 +114,7 @@ export function RouteActionsDock({
         <QuickAction
           icon="sitemap"
           label="Optimize"
+          testID="route-optimize"
           onPress={onOptimize}
           loading={optimizing}
           disabled={busy || !canOptimize}
@@ -126,6 +131,7 @@ export function RouteActionsDock({
           </Text>
 
           <Pressable
+            testID="route-optimize-expanded"
             onPress={onOptimize}
             disabled={busy || !canOptimize}
             style={[
@@ -149,6 +155,7 @@ export function RouteActionsDock({
           </Pressable>
 
           <Pressable
+            testID="route-clear"
             onPress={onClear}
             disabled={busy}
             style={[styles.secondaryBtn, styles.clearBtn, busy && styles.btnDisabled]}
@@ -171,6 +178,7 @@ export function RouteActionsDock({
 function QuickAction({
   icon,
   label,
+  testID,
   onPress,
   loading = false,
   disabled = false,
@@ -185,6 +193,7 @@ function QuickAction({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={disabled}
       style={[styles.quickAction, disabled && styles.btnDisabled]}

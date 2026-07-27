@@ -133,6 +133,7 @@ export function ChatScreen() {
       >
         <FlatList
           ref={listRef}
+          testID="chat-messages"
           data={messages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -151,6 +152,7 @@ export function ChatScreen() {
 
         <View style={styles.composer}>
           <TextInput
+            testID="chat-input"
             style={styles.input}
             value={input}
             onChangeText={setInput}
@@ -163,6 +165,7 @@ export function ChatScreen() {
             blurOnSubmit={false}
           />
           <Pressable
+            testID="chat-send"
             style={[
               styles.sendBtn,
               (!input.trim() || loading) && styles.sendBtnDisabled,

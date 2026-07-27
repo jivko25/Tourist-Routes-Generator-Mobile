@@ -82,7 +82,10 @@ export function CountryDetailSheet({
   if (!country) return null;
 
   return (
-    <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
+    <Animated.View
+      style={[styles.sheet, { transform: [{ translateY }] }]}
+      testID="map-country-sheet"
+    >
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{country.name || country.id}</Text>
@@ -92,7 +95,12 @@ export function CountryDetailSheet({
               : t('map.tapCity')}
           </Text>
         </View>
-        <Pressable onPress={onClose} hitSlop={12} style={styles.closeBtn}>
+        <Pressable
+          testID="map-country-sheet-close"
+          onPress={onClose}
+          hitSlop={12}
+          style={styles.closeBtn}
+        >
           <Text style={styles.closeLabel}>✕</Text>
         </Pressable>
       </View>
@@ -145,7 +153,11 @@ export function CountryDetailSheet({
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{citiesError}</Text>
             {typeof onRetryCities === 'function' ? (
-              <Pressable onPress={onRetryCities} style={styles.retryBtn}>
+              <Pressable
+                testID="map-cities-retry"
+                onPress={onRetryCities}
+                style={styles.retryBtn}
+              >
                 <Text style={styles.retryText}>{t('common.retry')}</Text>
               </Pressable>
             ) : null}
@@ -194,6 +206,7 @@ export function CountryDetailSheet({
                   ) : null}
                   <View style={styles.cityActions}>
                     <Pressable
+                      testID={`map-city-attractions-${item.geonameId || item.name}`}
                       disabled={Boolean(openingCityName)}
                       onPress={() => onCityPress?.(item)}
                       style={({ pressed }) => [
@@ -220,6 +233,7 @@ export function CountryDetailSheet({
                       )}
                     </Pressable>
                     <Pressable
+                      testID={`map-city-photos-${item.geonameId || item.name}`}
                       disabled={Boolean(openingCityName)}
                       onPress={() => onCityPhotosPress?.(item)}
                       style={({ pressed }) => [
@@ -251,6 +265,7 @@ export function CountryDetailSheet({
       <View style={styles.actions}>
         {isVisited ? (
           <Pressable
+            testID="map-clear-visits"
             style={({ pressed }) => [
               styles.secondaryBtn,
               pressed && styles.pressed,
@@ -261,6 +276,7 @@ export function CountryDetailSheet({
           </Pressable>
         ) : (
           <Pressable
+            testID="map-mark-visited"
             style={({ pressed }) => [
               styles.primaryBtn,
               pressed && styles.pressed,
