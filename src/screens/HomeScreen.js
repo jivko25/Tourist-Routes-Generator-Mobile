@@ -75,7 +75,7 @@ export function HomeScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} testID="screen-home">
       <ImageBackground source={{ uri: HERO_IMAGE }} style={styles.heroBg}>
         <LinearGradient
           colors={[
@@ -92,8 +92,11 @@ export function HomeScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.topBar}>
-              <Text style={styles.brand}>{t('home.brand')}</Text>
+              <Text style={styles.brand} testID="home-brand">
+                {t('home.brand')}
+              </Text>
               <IconButton
+                testID="home-open-settings"
                 icon="cog-outline"
                 iconColor={colors.text}
                 size={24}

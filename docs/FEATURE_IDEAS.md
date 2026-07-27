@@ -39,6 +39,7 @@
   - [x] Mobile: city ZIP → Drive upload → `POST /api/photo-exports`
   - [x] Mobile: exports list + delete metadata (ZIP stays in Drive)
   - [x] Backend: `POST /api/auth/register` + `/login` + `/refresh` + `/logout`
+  - [x] Mobile Maestro e2e smoke (tabs / settings auth forms / invalid login)
   - [ ] Optional: country-scope ZIP
   - [ ] Web: same login → list export links
 

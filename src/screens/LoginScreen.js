@@ -43,7 +43,7 @@ export function LoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']} testID="screen-login">
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -52,12 +52,13 @@ export function LoginScreen({ navigation }) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Text variant="headlineSmall" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title} testID="login-title">
             {t('auth.loginTitle')}
           </Text>
           <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
 
           <TextInput
+            testID="login-email"
             mode="outlined"
             label={t('auth.email')}
             value={email}
@@ -75,6 +76,7 @@ export function LoginScreen({ navigation }) {
           ) : null}
 
           <TextInput
+            testID="login-password"
             mode="outlined"
             label={t('auth.password')}
             value={password}
@@ -94,12 +96,13 @@ export function LoginScreen({ navigation }) {
           />
 
           {error ? (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible testID="login-error">
               {error}
             </HelperText>
           ) : null}
 
           <Button
+            testID="login-submit"
             mode="contained"
             onPress={handleSubmit}
             loading={busy}
@@ -115,6 +118,7 @@ export function LoginScreen({ navigation }) {
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Button
+              testID="login-go-register"
               mode="text"
               onPress={() => navigation.replace('Register')}
               textColor={colors.primary}

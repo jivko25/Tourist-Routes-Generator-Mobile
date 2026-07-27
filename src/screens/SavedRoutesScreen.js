@@ -173,9 +173,11 @@ export function SavedRoutesScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']} testID="screen-saved">
       <View style={styles.header}>
-        <Text style={styles.title}>Saved routes</Text>
+        <Text style={styles.title} testID="saved-title">
+          Saved routes
+        </Text>
         <Text style={styles.subtitle}>
           {isOffline
             ? 'Available offline — open a trip to review stops without internet.'

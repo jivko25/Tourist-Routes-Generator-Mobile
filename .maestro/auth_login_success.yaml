@@ -1,0 +1,42 @@
+appId: com.travelgo.app
+name: Auth — login success (needs E2E_EMAIL / E2E_PASSWORD)
+tags:
+  - auth
+  - optional
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'screen-home'
+    timeout: 20000
+
+# Soft reset: sign out if a previous run left a session (avoid clearState / pm clear)
+- runFlow: subflows/ensure_signed_out.yaml
+
+- tapOn:
+    id: 'settings-sign-in'
+- extendedWaitUntil:
+    visible:
+      id: 'login-email'
+    timeout: 10000
+
+- tapOn:
+    id: 'login-email'
+- eraseText
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: 'login-password'
+- eraseText
+- inputText: ${E2E_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: 'login-submit'
+
+- extendedWaitUntil:
+    visible:
+      id: 'settings-user-email'
+    timeout: 30000
+- assertVisible:
+    id: 'settings-sign-out'
+- assertVisible:
+    id: 'settings-my-exports'

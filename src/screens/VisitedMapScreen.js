@@ -401,9 +401,11 @@ export function VisitedMapScreen({ navigation }) {
   const displayH = fitted.height * scale;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']} testID="screen-map">
       <View style={styles.header}>
-        <Text style={styles.title}>{t('map.title')}</Text>
+        <Text style={styles.title} testID="map-title">
+          {t('map.title')}
+        </Text>
         <Text style={styles.subtitle}>
           {t('map.countriesVisited', { count: visitedCountryCodes.length })}
         </Text>

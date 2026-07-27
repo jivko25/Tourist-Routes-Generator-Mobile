@@ -1,0 +1,54 @@
+appId: com.travelgo.app
+name: Smoke — tabs navigation
+tags:
+  - smoke
+  - navigation
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'screen-home'
+    timeout: 20000
+- assertVisible:
+    id: 'home-brand'
+- assertVisible:
+    id: 'search-input'
+
+- tapOn:
+    id: 'tab-SavedTab'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-saved'
+    timeout: 10000
+- assertVisible:
+    id: 'saved-title'
+
+- tapOn:
+    id: 'tab-ChatTab'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-chat'
+    timeout: 10000
+
+- tapOn:
+    id: 'tab-MapTab'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-map'
+    timeout: 15000
+- assertVisible:
+    id: 'map-title'
+
+- tapOn:
+    id: 'tab-SettingsTab'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-settings'
+    timeout: 10000
+- assertVisible:
+    id: 'settings-account-section'
+
+- tapOn:
+    id: 'tab-HomeTab'
+- assertVisible:
+    id: 'screen-home'

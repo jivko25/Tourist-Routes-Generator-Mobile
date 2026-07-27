@@ -63,6 +63,7 @@ function PeripheralButton({
   onLongPress,
   badge,
   label,
+  testID,
 }) {
   if (!route) {
     return <View style={styles.slot} />;
@@ -73,6 +74,7 @@ function PeripheralButton({
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
       accessibilityLabel={options?.tabBarAccessibilityLabel || label}
@@ -140,6 +142,7 @@ export function CurvedTabBar({ state, descriptors, navigation }) {
         options={options}
         badge={badge}
         label={t(slot.labelKey)}
+        testID={`tab-${slot.key}`}
         onPress={() => {
           if (!route) return;
           const event = navigation.emit({
@@ -184,6 +187,7 @@ export function CurvedTabBar({ state, descriptors, navigation }) {
 
         <View style={styles.fabSlot}>
           <Pressable
+            testID="tab-ChatTab"
             accessibilityRole="button"
             accessibilityState={chatFocused ? { selected: true } : {}}
             accessibilityLabel={t('tabs.ai')}

@@ -1,0 +1,24 @@
+appId: com.travelgo.app
+name: Home — search UI visible
+tags:
+  - home
+  - smoke
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'screen-home'
+    timeout: 20000
+- assertVisible:
+    id: 'home-brand'
+- assertVisible:
+    id: 'search-bar'
+- assertVisible:
+    id: 'search-input'
+- assertVisible:
+    id: 'search-submit'
+- tapOn:
+    id: 'search-input'
+- inputText: 'Sofia'
+- hideKeyboard
+- assertVisible: 'Sofia'

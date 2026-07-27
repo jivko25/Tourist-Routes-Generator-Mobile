@@ -1,0 +1,26 @@
+# Ensure Settings shows signed-out UI (no pm clear — keeps network/install intact).
+appId: com.travelgo.app
+tags:
+  - subflow
+---
+- tapOn:
+    id: 'tab-SettingsTab'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-settings'
+    timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: 'settings-sign-out'
+    commands:
+      - tapOn:
+          id: 'settings-sign-out'
+      - extendedWaitUntil:
+          visible:
+            id: 'settings-sign-in'
+          timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: 'settings-sign-in'
+    timeout: 15000
