@@ -50,6 +50,8 @@ export function TravelProvider({ children }) {
   const [cityAlbums, setCityAlbums] = useState({});
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isHydrated, setIsHydrated] = useState(false);
+  /** False after resume/hydrate until Places catalog is fetched again. */
+  const [placesCatalogReady, setPlacesCatalogReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -74,7 +76,13 @@ export function TravelProvider({ children }) {
 
         if (!mounted) return;
 
-        setSelectedAttractions(savedAttractions);
+        const selected = Array.isArray(savedAttractions) ? savedAttractions : [];
+        setSelectedAttractions(selected);
+        // Seed list with selected stops so "Add more" isn't blank before refresh.
+        if (selected.length > 0) {
+          setAttractions(selected);
+        }
+        setPlacesCatalogReady(false);
         setSettings(savedSettings);
         setSavedRoutes(routes);
         setVisits(
@@ -95,6 +103,17 @@ export function TravelProvider({ children }) {
           setCityCoordinates({
             latitude: lastCity.latitude,
             longitude: lastCity.longitude,
+          });
+        } else if (
+          selected[0] &&
+          typeof selected[0].latitude === 'number' &&
+          typeof selected[0].longitude === 'number'
+        ) {
+          // Fallback if last city was missing but route stops remain.
+          setSearchedCity(selected[0].cityName || selected[0].name || 'Your route');
+          setCityCoordinates({
+            latitude: selected[0].latitude,
+            longitude: selected[0].longitude,
           });
         }
       } catch (error) {
@@ -501,6 +520,7 @@ export function TravelProvider({ children }) {
       longitude: city.longitude,
     });
     setAttractions(places);
+    setPlacesCatalogReady(true);
     storageService.saveLastCity(city).catch((error) => {
       console.warn('Failed to persist last city:', error);
     });
@@ -584,6 +604,7 @@ export function TravelProvider({ children }) {
     setAttractions([]);
     setSearchedCity(null);
     setCityCoordinates(null);
+    setPlacesCatalogReady(false);
   }, []);
 
   const isAttractionSelected = useCallback(
@@ -635,6 +656,8 @@ export function TravelProvider({ children }) {
     }
 
     setSelectedAttractions(route.attractions);
+    setAttractions(route.attractions);
+    setPlacesCatalogReady(false);
     setSearchedCity(route.cityName || null);
     setCityCoordinates(route.cityCoordinates || null);
     setSettings((current) => ({
@@ -662,6 +685,7 @@ export function TravelProvider({ children }) {
       cityCoordinates,
       attractions,
       selectedAttractions,
+      placesCatalogReady,
       savedRoutes,
       visits,
       cityAlbums,
@@ -700,6 +724,7 @@ export function TravelProvider({ children }) {
       cityCoordinates,
       attractions,
       selectedAttractions,
+      placesCatalogReady,
       savedRoutes,
       visits,
       cityAlbums,
