@@ -42,6 +42,9 @@
   - [x] Mobile Maestro e2e smoke (tabs / settings auth forms / invalid login)
   - [ ] Optional: country-scope ZIP
   - [ ] Web: same login → list export links
+- [ ] **20. Attractions map view** — List | Map toggle на Places; маркери за филтрираните места; tap → кратък preview (рейтинг, open, Add / Details)
+  - [x] List | Map toggle + `AttractionsMapView` + preview sheet
+  - [ ] Optional: marker clustering при 100+ pins
 
 ## Продуктова връзка (#9 + #11 + #16 + #17)
 

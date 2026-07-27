@@ -10,10 +10,13 @@ import {
   ActivityIndicator,
   Button,
   Searchbar,
+  SegmentedButtons,
   Text,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractionCard } from '../components/AttractionCard';
+import { AttractionMapPreview } from '../components/AttractionMapPreview';
+import { AttractionsMapView } from '../components/AttractionsMapView';
 import { PlacesOptionsSheet } from '../components/PlacesOptionsSheet';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { usePlaces } from '../hooks/usePlaces';
@@ -45,17 +48,15 @@ export function AttractionsScreen({ navigation }) {
   const [listQuery, setListQuery] = useState('');
   const [sortId, setSortId] = useState(DEFAULT_SORT_ID);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
+  const [focusedAttraction, setFocusedAttraction] = useState(null);
 
   const filteredAttractions = useMemo(() => {
     const query = listQuery.trim().toLowerCase();
     const filtered = !query
       ? attractions
       : attractions.filter((item) => {
-          const haystack = [
-            item.name,
-            item.category,
-            item.description,
-          ]
+          const haystack = [item.name, item.category, item.description]
             .filter(Boolean)
             .join(' ')
             .toLowerCase();
@@ -106,6 +107,21 @@ export function AttractionsScreen({ navigation }) {
       isOffline,
       setError,
     ]
+  );
+
+  const handleViewModeChange = useCallback((next) => {
+    setViewMode(next);
+    if (next === 'list') setFocusedAttraction(null);
+  }, []);
+
+  const openDetails = useCallback(
+    (attraction) => {
+      navigation.navigate('AttractionDetail', {
+        attractionId: attraction.id,
+        title: attraction.name,
+      });
+    },
+    [navigation]
   );
 
   const renderEmpty = () => {
@@ -168,10 +184,33 @@ export function AttractionsScreen({ navigation }) {
           <OfflineBanner message="Browsing cached results. Refresh and category changes need internet." />
         ) : null}
 
+        <SegmentedButtons
+          value={viewMode}
+          onValueChange={handleViewModeChange}
+          style={styles.viewToggle}
+          buttons={[
+            {
+              value: 'list',
+              label: 'List',
+              icon: 'view-list',
+              testID: 'attractions-view-list',
+            },
+            {
+              value: 'map',
+              label: 'Map',
+              icon: 'map',
+              testID: 'attractions-view-map',
+            },
+          ]}
+        />
+
         <Searchbar
           placeholder="Search places…"
           value={listQuery}
-          onChangeText={setListQuery}
+          onChangeText={(text) => {
+            setListQuery(text);
+            setFocusedAttraction(null);
+          }}
           style={styles.search}
           inputStyle={styles.searchInput}
           iconColor={colors.primary}
@@ -195,41 +234,68 @@ export function AttractionsScreen({ navigation }) {
         ) : null}
       </View>
 
-      <FlatList
-        data={filteredAttractions}
-        extraData={filteredAttractions
-          .map((item) => item.coverImageUrl || item.photos?.[0]?.url || '')
-          .join('|')}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.list,
-          filteredAttractions.length === 0 && styles.listEmpty,
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing || (loading && !refreshing)}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        ListEmptyComponent={renderEmpty}
-        renderItem={({ item }) => (
-          <AttractionCard
-            attraction={item}
-            cityName={searchedCity}
-            origin={cityCoordinates}
-            selected={isAttractionSelected(item.id)}
-            onToggle={toggleAttraction}
-            onPressDetails={(attraction) =>
-              navigation.navigate('AttractionDetail', {
-                attractionId: attraction.id,
-                title: attraction.name,
-              })
-            }
-          />
-        )}
-      />
+      {viewMode === 'list' ? (
+        <FlatList
+          data={filteredAttractions}
+          extraData={filteredAttractions
+            .map((item) => item.coverImageUrl || item.photos?.[0]?.url || '')
+            .join('|')}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[
+            styles.list,
+            filteredAttractions.length === 0 && styles.listEmpty,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing || (loading && !refreshing)}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={renderEmpty}
+          renderItem={({ item }) => (
+            <AttractionCard
+              attraction={item}
+              cityName={searchedCity}
+              origin={cityCoordinates}
+              selected={isAttractionSelected(item.id)}
+              onToggle={toggleAttraction}
+              onPressDetails={openDetails}
+            />
+          )}
+        />
+      ) : (
+        <View style={styles.mapPane}>
+          {filteredAttractions.length === 0 ? (
+            renderEmpty()
+          ) : (
+            <>
+              <AttractionsMapView
+                attractions={filteredAttractions}
+                cityCoordinates={cityCoordinates}
+                isSelected={isAttractionSelected}
+                focusedId={focusedAttraction?.id || null}
+                onSelect={setFocusedAttraction}
+                onMapPress={() => setFocusedAttraction(null)}
+              />
+              <AttractionMapPreview
+                attraction={focusedAttraction}
+                cityName={searchedCity}
+                origin={cityCoordinates}
+                selected={
+                  focusedAttraction
+                    ? isAttractionSelected(focusedAttraction.id)
+                    : false
+                }
+                onClose={() => setFocusedAttraction(null)}
+                onToggle={toggleAttraction}
+                onPressDetails={openDetails}
+              />
+            </>
+          )}
+        </View>
+      )}
 
       <View style={styles.footer}>
         <Button
@@ -237,9 +303,7 @@ export function AttractionsScreen({ navigation }) {
           buttonColor={colors.accent}
           textColor="#FFFFFF"
           disabled={selectedAttractions.length === 0}
-          onPress={() =>
-            navigation.navigate('Route')
-          }
+          onPress={() => navigation.navigate('Route')}
           contentStyle={styles.footerButton}
           style={styles.footerAction}
           labelStyle={styles.footerLabel}
@@ -277,6 +341,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textMuted,
+  },
+  viewToggle: {
+    alignSelf: 'stretch',
   },
   search: {
     backgroundColor: colors.surface,
@@ -317,6 +384,10 @@ const styles = StyleSheet.create({
   },
   listEmpty: {
     flexGrow: 1,
+  },
+  mapPane: {
+    flex: 1,
+    position: 'relative',
   },
   centered: {
     flex: 1,
