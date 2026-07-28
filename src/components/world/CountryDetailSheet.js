@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -14,6 +14,8 @@ import { CountrySilhouette } from './WorldMapSvg';
 import { getApproxPathBounds } from '../../utils/svgPathBounds';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../../utils/worldCountries';
 import { colors, radii, spacing } from '../../theme/colors';
+
+const INITIAL_PLACE_VISIBLE = 3;
 
 function formatPopulation(value) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
@@ -74,9 +76,26 @@ export function CountryDetailSheet({
   placeVisits = [],
 }) {
   const { t } = useTranslation();
+  const [placesExpanded, setPlacesExpanded] = useState(false);
   const transform = useMemo(
     () => (country?.d ? buildSheetTransform(country.d) : undefined),
     [country?.d]
+  );
+
+  useEffect(() => {
+    setPlacesExpanded(false);
+  }, [country?.id]);
+
+  const visiblePlaceVisits = useMemo(() => {
+    if (placesExpanded || placeVisits.length <= INITIAL_PLACE_VISIBLE) {
+      return placeVisits;
+    }
+    return placeVisits.slice(0, INITIAL_PLACE_VISIBLE);
+  }, [placeVisits, placesExpanded]);
+
+  const hiddenPlaceCount = Math.max(
+    0,
+    placeVisits.length - INITIAL_PLACE_VISIBLE
   );
 
   if (!country) return null;
@@ -118,27 +137,54 @@ export function CountryDetailSheet({
         {placeVisits.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('map.placesBeen')}</Text>
-            {placeVisits.map((visit) => (
-              <View key={visit.id} style={styles.placeRow}>
-                <View style={styles.placeIcon}>
-                  <MaterialCommunityIcons
-                    name="map-marker-check"
-                    size={18}
-                    color={colors.success}
-                  />
+            {visiblePlaceVisits.map((visit) => {
+              const metaParts = [visit.cityName, formatVisitDate(visit.visitedAt)];
+              if (visit.visitCount > 1) {
+                metaParts.push(
+                  t('map.visitedTimes', { count: visit.visitCount })
+                );
+              }
+              return (
+                <View
+                  key={visit.placeId || visit.id}
+                  style={styles.placeRow}
+                  testID={`map-place-visit-${visit.placeId || visit.id}`}
+                >
+                  <View style={styles.placeIcon}>
+                    <MaterialCommunityIcons
+                      name="map-marker-check"
+                      size={18}
+                      color={colors.success}
+                    />
+                  </View>
+                  <View style={styles.placeText}>
+                    <Text style={styles.placeName} numberOfLines={1}>
+                      {visit.placeName}
+                    </Text>
+                    <Text style={styles.placeMeta} numberOfLines={1}>
+                      {metaParts.filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.placeText}>
-                  <Text style={styles.placeName} numberOfLines={1}>
-                    {visit.placeName}
-                  </Text>
-                  <Text style={styles.placeMeta} numberOfLines={1}>
-                    {[visit.cityName, formatVisitDate(visit.visitedAt)]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
+            {hiddenPlaceCount > 0 ? (
+              <Pressable
+                testID="map-places-see-more"
+                onPress={() => setPlacesExpanded((prev) => !prev)}
+                style={({ pressed }) => [
+                  styles.seeMoreBtn,
+                  pressed && styles.pressed,
+                ]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.seeMoreText}>
+                  {placesExpanded
+                    ? t('map.showLessPlaces')
+                    : t('map.seeMorePlaces', { count: hiddenPlaceCount })}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -396,6 +442,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     color: colors.textMuted,
+  },
+  seeMoreBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+  },
+  seeMoreText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
   cityRow: {
     paddingVertical: 12,

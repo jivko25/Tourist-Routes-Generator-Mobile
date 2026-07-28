@@ -17,6 +17,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { usePlaces } from '../hooks/usePlaces';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../utils/worldCountries';
 import { colors, spacing } from '../theme/colors';
+import { dedupePlaceVisits } from '../types/visit';
 
 const SHEET_HEIGHT = 520;
 const CITIES_LIMIT = 12;
@@ -112,8 +113,10 @@ export function VisitedMapScreen({ navigation }) {
 
   const placeVisits = useMemo(() => {
     if (!selectedCountry?.id) return [];
-    return getVisitsForCountry(selectedCountry.id).filter(
-      (visit) => visit.kind === 'place' && visit.placeName
+    return dedupePlaceVisits(
+      getVisitsForCountry(selectedCountry.id).filter(
+        (visit) => visit.kind === 'place' && visit.placeName
+      )
     );
   }, [selectedCountry?.id, getVisitsForCountry]);
 

@@ -17,6 +17,7 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { CurvedTabBar } from '../components/navigation/CurvedTabBar';
 import { useTravel } from '../context/TravelContext';
+import { navigationRef } from './navigationRef';
 import { colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -98,7 +99,7 @@ export function AppNavigator() {
   const { t, i18n } = useTranslation();
 
   return (
-    <NavigationContainer key={i18n.language}>
+    <NavigationContainer key={i18n.language} ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {

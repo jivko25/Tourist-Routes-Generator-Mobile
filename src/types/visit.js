@@ -135,3 +135,67 @@ export function getPlaceVisitsForCity(visits, countryCode, cityName) {
         new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
     );
 }
+
+/**
+ * Stable key for grouping the same attraction across multiple visit logs.
+ * Prefers country + place name (+ city) so re-visits show once in the UI.
+ * Falls back to placeId when the name is missing.
+ * @param {Visit} visit
+ * @returns {string|null}
+ */
+export function getPlaceVisitDedupeKey(visit) {
+  if (!visit || visit.kind !== 'place') return null;
+
+  const country = String(visit.countryCode || '')
+    .trim()
+    .toUpperCase();
+  const name = String(visit.placeName || '')
+    .trim()
+    .toLowerCase();
+  if (country && name) {
+    const city = String(visit.cityName || '')
+      .trim()
+      .toLowerCase();
+    return city ? `name:${country}:${city}:${name}` : `name:${country}:${name}`;
+  }
+
+  const placeId = String(visit.placeId || '').trim();
+  if (placeId) return `id:${placeId}`;
+  return null;
+}
+
+/**
+ * One row per unique place (latest visit kept). Adds `visitCount`.
+ * @param {Visit[]} visits
+ * @returns {Array<Visit & { visitCount: number }>}
+ */
+export function dedupePlaceVisits(visits) {
+  const byKey = new Map();
+
+  (visits || []).forEach((visit) => {
+    if (visit?.kind !== 'place' || !visit.placeName) return;
+    const key = getPlaceVisitDedupeKey(visit);
+    if (!key) return;
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...visit, visitCount: 1 });
+      return;
+    }
+
+    existing.visitCount += 1;
+    const existingTime = new Date(existing.visitedAt).getTime();
+    const nextTime = new Date(visit.visitedAt).getTime();
+    if (Number.isFinite(nextTime) && nextTime >= existingTime) {
+      byKey.set(key, {
+        ...visit,
+        visitCount: existing.visitCount,
+      });
+    }
+  });
+
+  return [...byKey.values()].sort(
+    (a, b) =>
+      new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
+  );
+}

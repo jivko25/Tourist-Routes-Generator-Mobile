@@ -46,6 +46,8 @@
   `active-route-clear` (confirm dialog — text-based assert)
 - [ ] **Add more places**  
   `route-add-more` → `screen-attractions`
+- [ ] **Live trip start → arrival → detail**  
+  `live-trip-start` → (real geofence / GPS) → notification / `live-trip-open-arrival` → `screen-attraction-detail`
 - [ ] **Reverse / optimize / GPS**  
   `route-reverse`, `route-optimize` (dock), `route-gps-start`, `route-gps-end`
 - [ ] **Open in Google Maps**  
@@ -124,13 +126,13 @@
 `detail-add-route`, `detail-remove-route`, `detail-open-maps`
 
 ### Route
-`route-add-more`, `route-gps-start`, `route-gps-end`, `route-reverse`, `route-actions-dock`, `route-actions-toggle`, `route-open-maps`, `route-share`, `route-save`, `route-optimize`, `route-optimize-expanded`, `route-clear`, `route-save-name`, `route-save-cancel`, `route-save-confirm`, `selected-place-*`, `selected-place-remove-*`
+`route-add-more`, `route-gps-start`, `route-gps-end`, `route-reverse`, `route-actions-dock`, `route-actions-toggle`, `route-open-maps`, `route-share`, `route-save`, `route-optimize`, `route-optimize-expanded`, `route-clear`, `route-save-name`, `route-save-cancel`, `route-save-confirm`, `selected-place-*`, `selected-place-remove-*`, `live-trip-panel`, `live-trip-start`, `live-trip-stop`, `live-trip-next-stop`, `live-trip-open-arrival`
 
 ### Saved
 `saved-title`, `saved-route-*`, `saved-route-open-*`, `saved-route-share-*`, `saved-route-delete-*`
 
 ### Map / country sheet
-`map-title`, `map-canvas`, `map-country-sheet`, `map-country-sheet-close`, `map-mark-visited`, `map-clear-visits`, `map-cities-retry`, `map-city-attractions-*`, `map-city-photos-*`
+`map-title`, `map-canvas`, `map-country-sheet`, `map-country-sheet-close`, `map-mark-visited`, `map-clear-visits`, `map-cities-retry`, `map-city-attractions-*`, `map-city-photos-*`, `map-places-see-more`, `map-place-visit-*`
 
 ### Photos / exports
 `city-photos-add`, `city-photos-export`, `photo-export-*`, `photo-export-open-*`, `photo-export-delete-*`

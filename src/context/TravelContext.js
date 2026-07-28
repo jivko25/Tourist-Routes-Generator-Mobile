@@ -290,15 +290,25 @@ export function TravelProvider({ children }) {
       }
 
       const placeId = data.placeId || data.attractionId || null;
-      if (placeId) {
-        const duplicate = visits.find(
-          (visit) =>
-            visit.kind === 'place' &&
-            visit.placeId &&
-            visit.placeId === placeId
-        );
-        if (duplicate) return duplicate;
-      }
+      const placeNameKey = placeName.toLowerCase();
+      const cityKey = cityName ? cityName.toLowerCase() : '';
+      const duplicate = visits.find((visit) => {
+        if (visit.kind !== 'place') return false;
+        if (String(visit.countryCode).toUpperCase() !== code) return false;
+        if (placeId && visit.placeId && visit.placeId === placeId) return true;
+        if (
+          String(visit.placeName || '')
+            .trim()
+            .toLowerCase() === placeNameKey &&
+          String(visit.cityName || '')
+            .trim()
+            .toLowerCase() === cityKey
+        ) {
+          return true;
+        }
+        return false;
+      });
+      if (duplicate) return duplicate;
 
       return addVisit({
         kind: 'place',

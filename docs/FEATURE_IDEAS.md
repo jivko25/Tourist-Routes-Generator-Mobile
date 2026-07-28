@@ -13,7 +13,11 @@
 - [x] **6. Офлайн маршрут** — запазени данни достъпни без интернет
 - [x] **7. Партньорски билети** — GetYourGuide / подобни (внимателно с ToS и disclosure)
 - [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
-- [ ] **9. Live проследяване на маршрут** — „Start trip“; background location докато потребителят ползва Maps; при пристигане → push; от нотификацията → детайл за мястото → следваща точка
+- [x] **9. Live проследяване на маршрут** — „Start trip“; background location докато потребителят ползва Maps; при пристигане → push; от нотификацията → детайл за мястото → следваща точка
+  - [x] Start / Stop trip + geofence на следващата спирка (~120 m)
+  - [x] Local push + tap → Attraction detail
+  - [x] `recordPlaceVisit` (Visited map)
+  - [ ] Optional: richer in-trip UI (ETA to next stop, pause)
 - [x] **10. AI travel chat** — parse intent (Vercel) + GYG activities; hotels/car stubs (flights — за премахване, виж #13)
 - [x] **11. Visited map (страни/места)** — SVG карта на света; оцветяване на посетени държави; при клик — списък къде/кога съм бил в тази страна (хранене от #9)
   - [x] Базов екран + SVG map (`@svg-maps/world`) + pan/zoom + sheet
@@ -22,7 +26,7 @@
   - [x] Top cities от `GET /api/countries/:code` → tap → Attractions (без geocode)
   - [x] Visit schema: `kind: country | city | place` (+ placeId, coords, routeId) — готов за live trip
   - [ ] UI: mark city visited + badge в списъка с градове
-  - [ ] Автоматично `recordPlaceVisit` при arrival на спирка (#9)
+  - [x] Автоматично `recordPlaceVisit` при arrival на спирка (#9)
 - [ ] **12. Booking.com affiliate в чата** — хотели през партньорски линкове (като GYG за activities), с disclosure
 - [ ] **13. Премахване на полети от чата** — няма ясен flight affiliate; махни transport/flights от parse UI, orchestrator stubs и placeholder copy
 - [ ] **14. Clarifying questions в AI чата (бекенд)** — slot-filling: ако липсват критични данни, питай преди orchestration (не „познавай“)

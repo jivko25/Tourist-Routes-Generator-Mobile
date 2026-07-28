@@ -9,6 +9,7 @@ import i18n from './src/i18n';
 import { setAppLanguage } from './src/i18n/language';
 import { AuthProvider } from './src/context/AuthContext';
 import { TravelProvider, useTravel } from './src/context/TravelContext';
+import { LiveTripProvider } from './src/context/LiveTripContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { colors } from './src/theme/colors';
 
@@ -42,10 +43,12 @@ export default function App() {
         <PaperProvider theme={theme}>
           <AuthProvider>
             <TravelProvider>
-              <LanguageSync>
-                <StatusBar style="dark" />
-                <AppNavigator />
-              </LanguageSync>
+              <LiveTripProvider>
+                <LanguageSync>
+                  <StatusBar style="dark" />
+                  <AppNavigator />
+                </LanguageSync>
+              </LiveTripProvider>
             </TravelProvider>
           </AuthProvider>
         </PaperProvider>

@@ -34,6 +34,9 @@ module.exports = {
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
+      'ACCESS_BACKGROUND_LOCATION',
+      'FOREGROUND_SERVICE',
+      'FOREGROUND_SERVICE_LOCATION',
       'CAMERA',
       'READ_MEDIA_IMAGES',
       'READ_EXTERNAL_STORAGE',
@@ -49,7 +52,11 @@ module.exports = {
     bundleIdentifier: 'com.travelgo.app',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
-        'Travel Go uses your location to start the route from where you are.',
+        'Travel Go uses your location to start the route from where you are and to detect when you arrive at a stop.',
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        'Travel Go uses background location during a live trip to notify you when you arrive at the next stop — even if Maps is open.',
+      NSLocationAlwaysUsageDescription:
+        'Travel Go uses background location during a live trip to notify you when you arrive at the next stop.',
       NSCameraUsageDescription:
         'Travel Go uses the camera so you can add photos to a city album.',
       NSPhotoLibraryUsageDescription:
@@ -69,7 +76,19 @@ module.exports = {
       'expo-location',
       {
         locationWhenInUsePermission:
-          'Allow Travel Go to use your location to start the route from where you are.',
+          'Allow Travel Go to use your location to start routes and detect arrivals at stops.',
+        locationAlwaysAndWhenInUsePermission:
+          'Allow Travel Go to track your live trip in the background and notify you when you arrive at the next stop.',
+        isIosBackgroundLocationEnabled: true,
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/TravelGoIcon.png',
+        color: '#3B82F6',
       },
     ],
     [

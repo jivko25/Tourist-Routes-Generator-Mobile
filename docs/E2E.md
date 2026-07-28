@@ -3,6 +3,7 @@
 Мобилното e2e е с **[Maestro](https://maestro.dev/)**. Flows живеят в repo: `.maestro/*.yaml`.
 
 **Backlog + testID каталог:** [`docs/E2E_FLOWS.md`](./E2E_FLOWS.md)  
+**Live trip тест без обикаляне:** [`docs/LIVE_TRIP.md`](./LIVE_TRIP.md)  
 **Правило:** при нов UI винаги слагай `testID` (`.cursor/rules/e2e-testids.mdc`).
 
 ## Как се пускат (препоръчително)

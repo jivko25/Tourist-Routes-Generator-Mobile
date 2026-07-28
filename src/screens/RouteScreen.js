@@ -12,6 +12,7 @@ import { PlaceMap } from '../components/PlaceMap';
 import { SelectedPlaceCard } from '../components/SelectedPlaceCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { RouteActionsDock } from '../components/RouteActionsDock';
+import { LiveTripPanel } from '../components/LiveTripPanel';
 import { useTravel } from '../context/TravelContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { geocodeCity } from '../services/geocodingService';
@@ -564,6 +565,8 @@ export function RouteScreen({ navigation }) {
             ? `Add more places${searchedCity ? ` in ${searchedCity.split(',')[0]}` : ''}`
             : 'Search places to add'}
         </Button>
+
+        {selectedAttractions.length > 0 ? <LiveTripPanel /> : null}
 
         {selectedAttractions.length > 0 ? (
           <View style={styles.mapSection}>
