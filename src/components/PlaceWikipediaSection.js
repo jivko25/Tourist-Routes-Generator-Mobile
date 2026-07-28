@@ -19,8 +19,6 @@ import { colors, radii, spacing } from '../theme/colors';
 export function PlaceWikipediaSection({
   story = null,
   loading = false,
-  error = null,
-  onRetry,
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -47,31 +45,9 @@ export function PlaceWikipediaSection({
     );
   }
 
-  if (error && !story) {
-    return (
-      <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          {t('detail.wikiTitle')}
-        </Text>
-        <Text style={styles.errorText}>{error}</Text>
-        {typeof onRetry === 'function' ? (
-          <Button mode="text" onPress={onRetry} textColor={colors.primaryDark}>
-            {t('common.retry')}
-          </Button>
-        ) : null}
-      </View>
-    );
-  }
-
+  // No reliable article for this attraction — show nothing (never city Wikipedia).
   if (!story?.extract) {
-    return (
-      <View style={styles.section}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          {t('detail.wikiTitle')}
-        </Text>
-        <Text style={styles.muted}>{t('detail.wikiMissing')}</Text>
-      </View>
-    );
+    return null;
   }
 
   const showReadMore = story.extract.length > (story.preview?.length || 0) + 40;
@@ -217,11 +193,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 22,
     fontSize: 15,
-  },
-  errorText: {
-    color: colors.error,
-    lineHeight: 20,
-    fontSize: 14,
   },
   readMoreBtn: {
     marginTop: spacing.md,
