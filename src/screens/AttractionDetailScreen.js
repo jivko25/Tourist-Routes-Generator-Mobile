@@ -48,8 +48,6 @@ export function AttractionDetailScreen({ route, navigation }) {
   const [detailsError, setDetailsError] = useState(null);
   const [wikiStory, setWikiStory] = useState(null);
   const [wikiLoading, setWikiLoading] = useState(false);
-  const [wikiError, setWikiError] = useState(null);
-  const [wikiReloadKey, setWikiReloadKey] = useState(0);
   const [coverViewerOpen, setCoverViewerOpen] = useState(false);
 
   const baseAttraction = useMemo(() => {
@@ -155,22 +153,17 @@ export function AttractionDetailScreen({ route, navigation }) {
     if (!baseAttraction?.name) {
       setWikiStory(null);
       setWikiLoading(false);
-      setWikiError(null);
       return undefined;
     }
 
     setWikiLoading(true);
-    setWikiError(null);
 
     fetchPlaceWikipediaStory(baseAttraction, searchedCity)
       .then((story) => {
         if (!cancelled) setWikiStory(story);
       })
-      .catch((error) => {
-        if (!cancelled) {
-          setWikiStory(null);
-          setWikiError(error?.message || 'Could not load Wikipedia story.');
-        }
+      .catch(() => {
+        if (!cancelled) setWikiStory(null);
       })
       .finally(() => {
         if (!cancelled) setWikiLoading(false);
@@ -186,7 +179,6 @@ export function AttractionDetailScreen({ route, navigation }) {
     baseAttraction?.latitude,
     baseAttraction?.longitude,
     searchedCity,
-    wikiReloadKey,
   ]);
 
   const distanceFromCity = useMemo(() => {
@@ -317,8 +309,6 @@ export function AttractionDetailScreen({ route, navigation }) {
         <PlaceWikipediaSection
           story={wikiStory}
           loading={wikiLoading}
-          error={wikiError}
-          onRetry={() => setWikiReloadKey((value) => value + 1)}
         />
 
         {showGetYourGuide ? (

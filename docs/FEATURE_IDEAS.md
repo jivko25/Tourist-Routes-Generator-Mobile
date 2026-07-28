@@ -15,7 +15,7 @@
 - [x] **8. По-добри снимки** — смяна/подобрение на източника (сегашните free covers не са най-качествени)
 - [ ] **9. Live проследяване на маршрут** — „Start trip“; background location докато потребителят ползва Maps; при пристигане → push; от нотификацията → детайл за мястото → следваща точка
 - [x] **10. AI travel chat** — parse intent (Vercel) + GYG activities; hotels/car stubs (flights — за премахване, виж #13)
-- [ ] **11. Visited map (страни/места)** — SVG карта на света; оцветяване на посетени държави; при клик — списък къде/кога съм бил в тази страна (хранене от #9)
+- [x] **11. Visited map (страни/места)** — SVG карта на света; оцветяване на посетени държави; при клик — списък къде/кога съм бил в тази страна (хранене от #9)
   - [x] Базов екран + SVG map (`@svg-maps/world`) + pan/zoom + sheet
   - [x] Локални visits в AsyncStorage + Mark as visited / Clear
   - [x] Curved bottom tab (AI FAB + Explore / Saved / Map / Settings)
